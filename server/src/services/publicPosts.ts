@@ -82,3 +82,15 @@ export async function setPostPublic(postId: number, uid: string, isPublic: boole
   cache.clear();
   return { changed: true as const };
 }
+
+/* Pourquoi /p/:id répond 410 : texte pour les journaux du serveur uniquement (jamais renvoyé au visiteur). */
+export async function explainHidden(id: number): Promise<string> {
+  const row = await getOne<{ is_public: number; repost_of: number | null; status: string }>(
+    'SELECT p.is_public, p.repost_of, u.status FROM posts p JOIN users u ON u.uid = p.uid WHERE p.id = ?',
+    [id],
+  );
+  if (!row) return 'post introuvable en base';
+  if (row.repost_of) return `ligne de repost de #${row.repost_of} : utilise l'id du post d'origine`;
+  if (!row.is_public) return 'is_public = 0 : le post est privé';
+  return `compte « ${row.status} » (seuls les comptes « active » sont exposés)`;
+}

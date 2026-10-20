@@ -7,7 +7,7 @@ import { PAGES } from '../seo/content.js';
 import { injectShell, renderPage, robotsTxt, shellMeta, sitemapIndexXml, sitemapPagesXml } from '../seo/render.js';
 import { renderGonePage, renderPostPage, renderPublicationsPage, sitemapPostsXml } from '../seo/renderPosts.js';
 import { indexNowKey } from '../services/indexnow.js';
-import { getPublicPost, listPublicPosts } from '../services/publicPosts.js';
+import { explainHidden, getPublicPost, listPublicPosts } from '../services/publicPosts.js';
 import { parseId } from '../utils/validation.js';
 
 /* Pages publiques servies sans connexion et lisant la base : un robot ne doit pas pouvoir la saturer. */
@@ -64,6 +64,7 @@ export function seoRouter(origin: string): Router {
       const id = parseId(req.params.id);
       const post = id ? await getPublicPost(id) : null;
       if (!post) {
+        console.warn(`[SEO] /p/${req.params.id} → 410 : ${id ? await explainHidden(id) : 'identifiant invalide'}`);
         res.status(410).type('text/html; charset=utf-8').send(renderGonePage(origin, req.path));
         return;
       }
