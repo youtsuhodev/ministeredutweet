@@ -1,4 +1,16 @@
-import { Ban, Flag, Heart, Link2, MessageCircle, MoreHorizontal, Pencil, Repeat2, Share, Trash2 } from 'lucide-react';
+import {
+  Ban,
+  Flag,
+  Globe,
+  Heart,
+  Link2,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Repeat2,
+  Share,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -31,6 +43,8 @@ export interface Post {
   audioDuration: number | null;
   createdAt: string;
   editedAt: string | null;
+  /* visible sans connexion (page /p/:id, indexable) : choix de l'auteur */
+  isPublic: boolean;
   feedAt: string;
   likesCount: number;
   repostsCount: number;
@@ -50,8 +64,9 @@ interface PostCardProps {
   onBlocked?: (uid: string) => void;
 }
 
-export function postUrl(id: number): string {
-  return `${window.location.origin}/post/${id}`;
+/* Un post public se partage via sa page publique (/p/:id) : aperçu de lien riche, lisible sans compte. */
+export function postUrl(id: number, isPublic = false): string {
+  return `${window.location.origin}/${isPublic ? 'p' : 'post'}/${id}`;
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -76,6 +91,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   /* texte affiché : suit les modifications sans recharger le fil */
   const [text, setText] = useState(post.text);
   const [editedAt, setEditedAt] = useState(post.editedAt);
+  const [isPublic, setIsPublic] = useState(post.isPublic);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -119,7 +135,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   };
 
   const handleShare = async () => {
-    const url = postUrl(post.id);
+    const url = postUrl(post.id, isPublic);
     if (navigator.share) {
       try {
         await navigator.share({ url, text: text || undefined });
@@ -139,6 +155,26 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
       onDelete?.(post.feedId);
     } catch {
       flash('Suppression impossible');
+    }
+  };
+
+  const togglePublic = async () => {
+    setMenuOpen(false);
+    const next = !isPublic;
+    if (
+      next &&
+      !window.confirm(
+        'Rendre ce post public ?\n\nIl sera visible sans connexion et pourra apparaître dans Google et d’autres moteurs de recherche. Réservé aux personnes de 18 ans et plus. Tu pourras le repasser en privé à tout moment, mais les moteurs peuvent mettre du temps à l’oublier.',
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.put(`/posts/${post.id}/visibility`, { public: next });
+      setIsPublic(next);
+      flash(next ? 'Post public : visible sans connexion' : 'Post repassé en privé');
+    } catch (err) {
+      flash(errorMessage(err, 'Modification impossible'));
     }
   };
 
@@ -238,6 +274,16 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               >
                 {timeAgo(post.createdAt)}
               </time>
+              {isPublic && (
+                <span
+                  title="Post public : visible sans connexion"
+                  role="img"
+                  aria-label="Post public"
+                  className="text-[var(--text-secondary)] flex-shrink-0"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                </span>
+              )}
               {editedAt && (
                 <span
                   title={`Modifié le ${fullDate(editedAt)}`}
@@ -269,10 +315,17 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
                       label="Copier le lien"
                       onClick={async () => {
                         setMenuOpen(false);
-                        flash((await copyToClipboard(postUrl(post.id))) ? 'Lien copié' : 'Copie impossible');
+                        flash((await copyToClipboard(postUrl(post.id, isPublic))) ? 'Lien copié' : 'Copie impossible');
                       }}
                     />
                     {canEdit && <MenuItem icon={<Pencil className="w-4 h-4" />} label="Modifier" onClick={startEdit} />}
+                    {canEdit && (
+                      <MenuItem
+                        icon={<Globe className="w-4 h-4" />}
+                        label={isPublic ? 'Repasser en privé' : 'Rendre public (Google)'}
+                        onClick={togglePublic}
+                      />
+                    )}
                     {canDelete && (
                       <MenuItem
                         icon={<Trash2 className="w-4 h-4" />}

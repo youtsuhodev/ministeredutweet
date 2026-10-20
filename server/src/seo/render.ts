@@ -53,7 +53,7 @@ function rich(text: string): string {
   return out + esc(text.slice(last));
 }
 
-interface HeadOptions {
+export interface HeadOptions {
   origin: string;
   path: string;
   title: string;
@@ -68,13 +68,15 @@ interface HeadOptions {
   jsonLd?: unknown[];
 }
 
-const ROBOTS_INDEX = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
-const ROBOTS_NOINDEX = 'noindex, nofollow';
+export const ROBOTS_INDEX = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+export const ROBOTS_NOINDEX = 'noindex, nofollow';
 
 /* Balises <head> communes aux pages rendues par le serveur et à la coquille de l'appli. */
-function headTags(o: HeadOptions): string {
+export function headTags(o: HeadOptions): string {
   const url = o.origin + (o.path === '/' ? '/' : o.path);
-  const image = `${o.origin}/assets/og/${o.ogImage ?? 'default.png'}`;
+  const image = o.ogImage?.startsWith('/')
+    ? o.origin + o.ogImage
+    : `${o.origin}/assets/og/${o.ogImage ?? 'default.png'}`;
   const lines = [
     `<title>${esc(o.title)}</title>`,
     `<meta name="description" content="${esc(o.description)}" />`,
@@ -101,7 +103,7 @@ function headTags(o: HeadOptions): string {
   return lines.filter(Boolean).join('\n  ');
 }
 
-function organization(origin: string) {
+export function organization(origin: string) {
   return {
     '@type': 'Organization',
     '@id': `${origin}/#organization`,
@@ -114,7 +116,7 @@ function organization(origin: string) {
   };
 }
 
-function website(origin: string) {
+export function website(origin: string) {
   return {
     '@type': 'WebSite',
     '@id': `${origin}/#website`,
@@ -170,6 +172,8 @@ ul,ol{padding-left:22px}li{margin:6px 0}p{margin:10px 0}
 .rel{list-style:none;padding:0;display:grid;gap:10px}.rel a{display:block;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;text-decoration:none}
 .src{font-size:15px;color:var(--mut)}
 footer{border-top:1px solid var(--bd);padding:22px 16px;color:var(--mut);font-size:14px;text-align:center}footer a{color:var(--mut)}
+.post{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px;margin:18px 0}.post .who{font-weight:800}.post .who span{font-weight:400;color:var(--mut)}.post .txt{font-size:1.15rem;white-space:pre-wrap;word-break:break-word;margin:10px 0}.post img,.post video{max-width:100%;border-radius:12px}.post audio{width:100%}
+.plist{list-style:none;padding:0}.plist li{margin:0}.plist a.card{display:block;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;margin:10px 0;text-decoration:none;color:var(--fg)}.plist .by{font-size:14px;color:var(--mut)}
 `;
 
 function renderSection(s: { h2: string; paras?: string[]; bullets?: string[] }): string {
@@ -189,6 +193,39 @@ function frenchDate(iso: string): string {
     year: 'numeric',
     timeZone: 'Europe/Paris',
   });
+}
+
+export function layout(head: string, inner: string): string {
+  return `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#eef2f7" media="(prefers-color-scheme: light)" />
+  ${head}
+  <link rel="icon" href="/assets/logo/logo.png" />
+  <link rel="apple-touch-icon" href="/assets/logo/logo.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <style>${CSS}</style>
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="top"><div class="top-in">
+  <a class="brand" href="/"><img src="/assets/logo/logo.png" width="32" height="32" alt="" /><span>${esc(SITE_NAME)}</span></a>
+  <nav class="nav" aria-label="Navigation principale">
+    <a href="/mobilisations-en-france">Mobilisations</a>
+    <a href="/publications">Publications</a>
+    <a href="/espace-presse">Presse</a>
+    <a class="btn" href="/auth">Rejoindre</a>
+  </nav>
+</div></header>
+${inner}<footer>
+  <p>${esc(SITE_NAME)} — ${esc(SITE_TAGLINE)}. <a href="/legal/conditions">Conditions</a> · <a href="/legal/confidentialite">Confidentialité</a> · <a href="/legal/regles">Règles</a> · <a href="/publications">Publications</a> · <a href="/espace-presse">Presse</a> · <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
+</footer>
+</body>
+</html>
+`;
 }
 
 export function renderPage(page: SeoPage, origin: string): string {
@@ -255,30 +292,9 @@ export function renderPage(page: SeoPage, origin: string): string {
     )
     .join('');
 
-  return `<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
-  <meta name="theme-color" content="#eef2f7" media="(prefers-color-scheme: light)" />
-  ${head}
-  <link rel="icon" href="/assets/logo/logo.png" />
-  <link rel="apple-touch-icon" href="/assets/logo/logo.png" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <style>${CSS}</style>
-</head>
-<body>
-<a class="skip" href="#contenu">Aller au contenu</a>
-<header class="top"><div class="top-in">
-  <a class="brand" href="/"><img src="/assets/logo/logo.png" width="32" height="32" alt="" /><span>${esc(SITE_NAME)}</span></a>
-  <nav class="nav" aria-label="Navigation principale">
-    <a href="/mobilisations-en-france">Mobilisations</a>
-    <a href="/espace-presse">Presse</a>
-    <a class="btn" href="/auth">Rejoindre</a>
-  </nav>
-</div></header>
-<main id="contenu">
+  return layout(
+    head,
+    `<main id="contenu">
 <article>
   <nav class="crumbs" aria-label="Fil d’Ariane">${crumbs
     .map((c, i) =>
@@ -316,12 +332,8 @@ export function renderPage(page: SeoPage, origin: string): string {
   <section><h2>À lire aussi</h2><ul class="rel">${related}</ul></section>
 </article>
 </main>
-<footer>
-  <p>${esc(SITE_NAME)} — ${esc(SITE_TAGLINE)}. <a href="/legal/conditions">Conditions</a> · <a href="/legal/confidentialite">Confidentialité</a> · <a href="/legal/regles">Règles</a> · <a href="/espace-presse">Presse</a> · <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
-</footer>
-</body>
-</html>
-`;
+`,
+  );
 }
 
 /* ───────────────────── Coquille de l'application (SPA) ───────────────────── */
@@ -395,10 +407,20 @@ export function injectShell(template: string, meta: ShellMeta): string {
 
 /* ─────────────────────────── sitemap & robots ─────────────────────────── */
 
-export function sitemapXml(origin: string): string {
+export function sitemapIndexXml(origin: string, postsLastmod?: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>${esc(origin)}/sitemap-pages.xml</loc><lastmod>${SITE_UPDATED}</lastmod></sitemap>
+  <sitemap><loc>${esc(origin)}/sitemap-posts.xml</loc>${postsLastmod ? `<lastmod>${postsLastmod}</lastmod>` : ''}</sitemap>
+</sitemapindex>
+`;
+}
+
+export function sitemapPagesXml(origin: string, publicationsLastmod?: string): string {
   const urls: { loc: string; lastmod: string }[] = [
     { loc: `${origin}/`, lastmod: SITE_UPDATED },
     ...PAGES.map((p) => ({ loc: origin + p.path, lastmod: p.updated })),
+    { loc: `${origin}/publications`, lastmod: publicationsLastmod ?? SITE_UPDATED },
     ...Object.keys(LEGAL_PAGES).map((slug) => ({ loc: `${origin}/legal/${slug}`, lastmod: SITE_UPDATED })),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>

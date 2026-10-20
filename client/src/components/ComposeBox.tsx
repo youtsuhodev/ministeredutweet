@@ -1,4 +1,4 @@
-import { Film, Image as ImageIcon, Mic, Square, X } from 'lucide-react';
+import { Film, Globe, Image as ImageIcon, Mic, Square, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { formatDuration, MAX_VOICE_SECONDS, useVoiceRecorder, voiceSupported } from '../hooks/useVoiceRecorder';
@@ -21,6 +21,8 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
   const { user } = useAuth();
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
+  /* Opt-in : par défaut un post reste privé (visible une fois connecté). */
+  const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -95,8 +97,10 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
         video,
         audio,
         audioDuration: audio ? voice.recording?.duration : undefined,
+        public: isPublic,
       });
       setText('');
+      setIsPublic(false);
       removeMedia();
       voice.discard();
       onPosted?.();
@@ -197,6 +201,19 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
             {error || voice.error}
           </p>
         )}
+
+        <label className="flex items-start gap-2 pt-2 text-sm text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            className="mt-0.5 accent-[var(--accent)]"
+          />
+          <span>
+            <Globe className="inline w-3.5 h-3.5 mr-1 -mt-0.5" aria-hidden="true" />
+            Rendre ce post public : visible sans connexion et référencé sur Google. Réservé aux 18 ans et plus.
+          </span>
+        </label>
 
         <div className="flex items-center justify-between pt-2">
           <div className="flex gap-1 -ml-2">

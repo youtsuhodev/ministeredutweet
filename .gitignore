@@ -8,6 +8,8 @@ client/release/
 
 # User uploads
 server/uploads/
+# Médias de la messagerie privée (servis uniquement aux membres de la conversation)
+server/private-uploads/
 
 # Environment & secrets
 .env

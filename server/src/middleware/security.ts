@@ -1,5 +1,11 @@
 import type { NextFunction, Request, Response } from 'express';
 
+/* ws:// et wss:// vers notre propre hôte (le schéma ws(s) n'est pas couvert par 'self' partout). */
+function wsOrigins(host: string | undefined): string {
+  if (!host || !/^[A-Za-z0-9.:-]+$/.test(host)) return '';
+  return `wss://${host} ws://${host}`;
+}
+
 /* En-têtes de sécurité de base (sans dépendance). La CSP n'est posée qu'en production :
    en dev, Vite injecte des scripts inline pour le HMR. */
 export function securityHeaders(isProd: boolean) {
@@ -22,7 +28,8 @@ export function securityHeaders(isProd: boolean) {
           /* Pas de https: ici : aucune image/vidéo externe (pixel espion, traçage) ne doit se charger. */
           "img-src 'self' data: blob:",
           "media-src 'self' blob:",
-          "connect-src 'self'",
+          /* WebSocket de la messagerie (même origine) : certains navigateurs ne couvrent pas ws: avec 'self'. */
+          `connect-src 'self' ${wsOrigins(req.get('host'))}`.trim(),
           "frame-src 'none'",
           "object-src 'none'",
           "base-uri 'self'",

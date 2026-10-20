@@ -4,6 +4,8 @@ export const RESERVED_PSEUDOS = new Set([
   'auth',
   'explore',
   'notifications',
+  'messages',
+  'ws',
   'settings',
   'post',
   'tag',

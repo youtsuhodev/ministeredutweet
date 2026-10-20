@@ -15,6 +15,7 @@ import { securityHeaders } from './middleware/security.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import captchaRoutes from './routes/captcha.js';
+import messagesRoutes from './routes/messages.js';
 import notificationsRoutes from './routes/notifications.js';
 import postsRoutes from './routes/posts.js';
 import profilesRoutes from './routes/profiles.js';
@@ -23,6 +24,9 @@ import { seoRouter, spaFallback } from './routes/seo.js';
 import socialRoutes from './routes/social.js';
 import trendsRoutes from './routes/trends.js';
 import uploadRoutes from './routes/upload.js';
+import { startMessagingMaintenance } from './services/messages.js';
+import { assertMessagesConfig } from './services/messageCrypto.js';
+import { attachRealtime } from './services/realtime.js';
 import { encryptLegacyTotpSecrets, purgeExpiredSessions } from './services/rtdb.js';
 import { assertSecretsConfig } from './services/secrets.js';
 import { sweepOrphanUploads, uploadsDir } from './services/uploads.js';
@@ -115,6 +119,7 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/profiles', profilesRoutes);
 app.use('/api', socialRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/messages', messagesRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/trends', trendsRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -144,6 +149,7 @@ app.use(seoRouter(appOrigin));
 async function start() {
   try {
     assertSecretsConfig();
+    assertMessagesConfig();
     await pool.getConnection().then((c) => {
       c.release();
       console.log('[DB] Connecté');
@@ -174,6 +180,10 @@ async function start() {
     const server = app.listen(PORT, () =>
       console.log(isProd ? `[SERVER] Production sur port ${PORT}` : `[SERVER] Dev sur port ${PORT} (Vite middleware)`),
     );
+
+    /* Temps réel de la messagerie : WebSocket sur /ws (cookie de session + contrôle de l'origine). */
+    attachRealtime(server, appOrigin);
+    startMessagingMaintenance();
 
     /* Entretien (au démarrage puis toutes les heures) : sessions et jetons expirés, et fichiers envoyés
        mais jamais rattachés à un post ou un profil (UPLOAD_SWEEP=off pour désactiver ce dernier). */

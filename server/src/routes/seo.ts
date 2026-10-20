@@ -2,8 +2,18 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { Router } from 'express';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { PAGES } from '../seo/content.js';
-import { injectShell, renderPage, robotsTxt, shellMeta, sitemapXml } from '../seo/render.js';
+import { injectShell, renderPage, robotsTxt, shellMeta, sitemapIndexXml, sitemapPagesXml } from '../seo/render.js';
+import { renderGonePage, renderPostPage, renderPublicationsPage, sitemapPostsXml } from '../seo/renderPosts.js';
+import { indexNowKey } from '../services/indexnow.js';
+import { getPublicPost, listPublicPosts } from '../services/publicPosts.js';
+import { parseId } from '../utils/validation.js';
+
+/* Pages publiques servies sans connexion et lisant la base : un robot ne doit pas pouvoir la saturer. */
+const publicLimiter = rateLimit({ windowMs: 60_000, max: 120, message: 'Trop de requêtes, ralentis un peu' });
+const newest = (posts: { createdAt: Date; editedAt: Date | null }[]) =>
+  posts.length ? (posts[0].editedAt ?? posts[0].createdAt).toISOString() : undefined;
 
 /* robots.txt, sitemap.xml et pages de contenu référencées, rendues côté serveur (HTML complet, sans JS).
    À monter avant le fallback de la SPA. Le middleware noCache (index.ts) s'applique : on ne pose pas de Cache-Control ici. */
@@ -14,8 +24,63 @@ export function seoRouter(origin: string): Router {
     res.type('text/plain; charset=utf-8').send(robotsTxt(origin));
   });
 
-  router.get('/sitemap.xml', (_req, res) => {
-    res.type('application/xml; charset=utf-8').send(sitemapXml(origin));
+  router.get('/sitemap.xml', publicLimiter, async (_req, res, next) => {
+    try {
+      const posts = await listPublicPosts(1);
+      res.type('application/xml; charset=utf-8').send(sitemapIndexXml(origin, newest(posts)));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/sitemap-pages.xml', publicLimiter, async (_req, res, next) => {
+    try {
+      const posts = await listPublicPosts(1);
+      res.type('application/xml; charset=utf-8').send(sitemapPagesXml(origin, newest(posts)));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /* Les 10 000 posts publics les plus récents (limite d'un sitemap : 50 000 URL). */
+  router.get('/sitemap-posts.xml', publicLimiter, async (_req, res, next) => {
+    try {
+      res.type('application/xml; charset=utf-8').send(sitemapPostsXml(origin, await listPublicPosts(10000)));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/publications', publicLimiter, async (_req, res, next) => {
+    try {
+      res.type('text/html; charset=utf-8').send(renderPublicationsPage(await listPublicPosts(50), origin));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/p/:id', publicLimiter, async (req, res, next) => {
+    try {
+      const id = parseId(req.params.id);
+      const post = id ? await getPublicPost(id) : null;
+      if (!post) {
+        res.status(410).type('text/html; charset=utf-8').send(renderGonePage(origin, req.path));
+        return;
+      }
+      res.type('text/html; charset=utf-8').send(renderPostPage(post, origin));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /* Fichier de vérification IndexNow : /<clé>.txt contient la clé (INDEXNOW_KEY). */
+  router.get(/^\/([A-Za-z0-9-]{8,128})\.txt$/, (req, res, next) => {
+    const key = indexNowKey();
+    if (key && req.params[0] === key) {
+      res.type('text/plain; charset=utf-8').send(key);
+      return;
+    }
+    next();
   });
 
   for (const page of PAGES) {

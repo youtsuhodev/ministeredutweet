@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { getOne, query, withTransaction } from '../config/database.js';
 import { hashSessionId, sha256Hex } from '../utils/crypto.js';
 import { countHashtags, type HashtagTrend } from '../utils/hashtags.js';
+import { notifyIndexNow, publicPostPath } from './indexnow.js';
+import { purgeUserMessaging } from './messages.js';
 import { pushForNotification } from './push.js';
 import { decryptSecret, encryptSecret, isSecretEncryptionEnabled } from './secrets.js';
 import { removeUploadsIfUnreferenced } from './uploads.js';
@@ -319,10 +321,11 @@ export async function createPost(
   video?: string | null,
   audio?: string | null,
   audioDuration?: number | null,
+  isPublic = false,
 ) {
   const result = await query<{ insertId: number }>(
-    'INSERT INTO posts (uid, text, image, video, audio, audio_duration) VALUES (?, ?, ?, ?, ?, ?)',
-    [uid, text, image, video || null, audio || null, audio ? (audioDuration ?? null) : null],
+    'INSERT INTO posts (uid, text, image, video, audio, audio_duration, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [uid, text, image, video || null, audio || null, audio ? (audioDuration ?? null) : null, isPublic ? 1 : 0],
   );
   return result.insertId;
 }
@@ -352,7 +355,7 @@ export async function updatePostText(postId: number, uid: string, text: string |
 }
 
 export async function findPostById(postId: number) {
-  return getOne<{ id: number; uid: string; text: string | null; repost_of: number | null }>(
+  return getOne<{ id: number; uid: string; text: string | null; repost_of: number | null; is_public: number }>(
     'SELECT * FROM posts WHERE id = ?',
     [postId],
   );
@@ -360,8 +363,14 @@ export async function findPostById(postId: number) {
 
 /* Supprime un post (ou annule un repost) appartenant à `uid`. Faux s'il n'existe pas / pas à lui. */
 export async function deletePost(postId: number, uid: string): Promise<boolean> {
-  const row = await getOne<{ id: number; image: string | null; video: string | null; audio: string | null }>(
-    'SELECT id, image, video, audio FROM posts WHERE id = ? AND uid = ?',
+  const row = await getOne<{
+    id: number;
+    image: string | null;
+    video: string | null;
+    audio: string | null;
+    is_public: number;
+  }>(
+    'SELECT id, image, video, audio, is_public FROM posts WHERE id = ? AND uid = ?',
     [postId, uid],
   );
   if (!row) return false;
@@ -371,8 +380,14 @@ export async function deletePost(postId: number, uid: string): Promise<boolean> 
 
 /* Suppression d'un post par la modération (sans condition d'auteur). */
 export async function deletePostAsModerator(postId: number): Promise<boolean> {
-  const row = await getOne<{ id: number; image: string | null; video: string | null; audio: string | null }>(
-    'SELECT id, image, video, audio FROM posts WHERE id = ?',
+  const row = await getOne<{
+    id: number;
+    image: string | null;
+    video: string | null;
+    audio: string | null;
+    is_public: number;
+  }>(
+    'SELECT id, image, video, audio, is_public FROM posts WHERE id = ?',
     [postId],
   );
   if (!row) return false;
@@ -380,7 +395,13 @@ export async function deletePostAsModerator(postId: number): Promise<boolean> {
   return true;
 }
 
-async function purgePost(row: { id: number; image: string | null; video: string | null; audio: string | null }) {
+async function purgePost(row: {
+  id: number;
+  image: string | null;
+  video: string | null;
+  audio: string | null;
+  is_public: number;
+}) {
   const postId = row.id;
   await withTransaction(async (conn) => {
     await conn.execute('DELETE FROM posts WHERE repost_of = ?', [postId]);
@@ -389,6 +410,8 @@ async function purgePost(row: { id: number; image: string | null; video: string 
     await conn.execute('DELETE FROM notifications WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM posts WHERE id = ?', [postId]);
   });
+  /* Un post public supprimé (par son auteur ou la modération) : on prévient les moteurs, la page répond 410. */
+  if (row.is_public) notifyIndexNow([publicPostPath(postId)]);
   /* Le média du post part aussi du disque (droit à l'effacement), sauf s'il sert encore ailleurs. */
   await removeUploadsIfUnreferenced([row.image, row.video, row.audio]);
 }
@@ -680,6 +703,7 @@ export async function deleteAccount(uid: string) {
     ),
     getOne<{ avatar: string | null; banner: string | null }>('SELECT avatar, banner FROM users WHERE uid = ?', [uid]),
   ]);
+  await purgeUserMessaging(uid);
   await withTransaction(async (conn) => {
     await conn.execute('DELETE r FROM posts r JOIN posts o ON r.repost_of = o.id WHERE o.uid = ?', [uid]);
     for (const sql of [

@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware, currentUser, requireVerifiedEmail } from '../middleware/auth.js';
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
+import { notifyIndexNow, publicPostPath } from '../services/indexnow.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
+import { setPostPublic } from '../services/publicPosts.js';
 import {
   createComment,
   createNotification,
@@ -102,6 +104,8 @@ router.get('/feed', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, res) => {
   try {
     const { text, image, video, audio, audioDuration } = req.body ?? {};
+    /* Opt-in : un post n'est public (page indexable) que si l'auteur le demande explicitement. */
+    const isPublic = req.body?.public === true;
     const uid = currentUser(req).uid;
     const cleanText = typeof text === 'string' ? text.trim() : '';
     if (!cleanText && !image && !video && !audio) {
@@ -126,8 +130,17 @@ router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, 
     /* Durée du vocal annoncée par le navigateur (les WebM de MediaRecorder n'ont pas de durée lisible). */
     const duration =
       audio && Number.isFinite(audioDuration) ? Math.min(Math.max(Math.round(audioDuration), 1), 120) : null;
-    const postId = await createPost(uid, cleanText || null, image || null, video || null, audio || null, duration);
+    const postId = await createPost(
+      uid,
+      cleanText || null,
+      image || null,
+      video || null,
+      audio || null,
+      duration,
+      isPublic,
+    );
     if (cleanText) await notifyMentions(cleanText, uid, postId);
+    if (isPublic) notifyIndexNow([publicPostPath(postId), '/publications']);
     res.json({ id: postId });
   } catch (err) {
     console.error('[POSTS] Create error:', err);
@@ -153,10 +166,28 @@ router.put('/:id', authMiddleware, requireVerifiedEmail, editLimiter, async (req
     if (result.changed && cleanText) {
       await notifyMentions(cleanText, uid, id, [], extractMentions(result.previousText));
     }
+    /* Texte modifié d'un post public : les moteurs doivent relire la page. */
+    if (result.changed && (await findPostById(id))?.is_public) notifyIndexNow([publicPostPath(id)]);
     const [post] = await fetchPosts(uid, filters.single(id), 1, 0);
     res.json({ text: post?.text ?? (cleanText || null), editedAt: post?.editedAt ?? null });
   } catch (err) {
     console.error('[POSTS] Edit error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/* Rend un de ses posts public (page indexable, visible sans connexion) ou le repasse en privé. */
+router.put('/:id/visibility', authMiddleware, requireVerifiedEmail, editLimiter, async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (!id) return res.status(404).json({ error: 'Post introuvable' });
+    if (typeof req.body?.public !== 'boolean') return res.status(400).json({ error: 'Valeur invalide' });
+    const result = await setPostPublic(id, currentUser(req).uid, req.body.public);
+    if (!result) return res.status(404).json({ error: 'Post introuvable' });
+    if (result.changed) notifyIndexNow([publicPostPath(id), '/publications']);
+    res.json({ public: req.body.public });
+  } catch (err) {
+    console.error('[POSTS] Visibility error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

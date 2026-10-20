@@ -55,6 +55,24 @@ export function readSessionCookie(req: Request): string | null {
   return typeof value === 'string' && value ? value : null;
 }
 
+/* Même lecture du cookie de session, mais depuis l'en-tête brut (mise à niveau WebSocket : pas de cookie-parser). */
+export function sessionCookieFromHeader(header: string | undefined): string | null {
+  if (!header) return null;
+  const found: Record<string, string> = {};
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq < 0) continue;
+    const name = part.slice(0, eq).trim();
+    if (name !== COOKIE_HOST && name !== COOKIE_PLAIN) continue;
+    try {
+      found[name] = decodeURIComponent(part.slice(eq + 1).trim());
+    } catch {
+      /* cookie mal encodé : ignoré */
+    }
+  }
+  return found[COOKIE_HOST] || found[COOKIE_PLAIN] || null;
+}
+
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 function formatDate(ms: number): string {
