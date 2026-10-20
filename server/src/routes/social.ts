@@ -114,4 +114,32 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
+/* Autocomplétion des @mentions : pseudos (ou noms) qui COMMENCENT par la saisie, les comptes suivis d'abord.
+   Sans saisie (juste « @ »), propose les comptes que je suis. Limiteur plus large car appelé pendant la frappe. */
+const mentionLimiter = rateLimit({ windowMs: 60 * 1000, max: 180, key: byUser });
+
+router.get('/mention-suggestions', authMiddleware, mentionLimiter, async (req, res) => {
+  try {
+    const raw = typeof req.query.q === 'string' ? req.query.q.trim().replace(/^@/, '').slice(0, 30) : '';
+    if (!/^[a-zA-Z0-9_]*$/.test(raw)) return res.json([]);
+    const uid = currentUser(req).uid;
+    const prefix = `${escapeLike(raw)}%`;
+    const users = await query<UserRow[]>(
+      `SELECT u.uid, u.pseudo, u.displayName, u.avatar, u.verified
+       FROM users u
+       WHERE u.uid <> ? AND u.status <> 'banned'
+         AND (? = '' OR u.pseudo LIKE ? ESCAPE '!' OR u.displayName LIKE ? ESCAPE '!')
+         AND (? <> '' OR u.uid IN (SELECT followed_uid FROM follows WHERE follower_uid = ?))
+         AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = u.uid) OR (b.blocker_uid = u.uid AND b.blocked_uid = ?))
+       ORDER BY (u.uid IN (SELECT followed_uid FROM follows WHERE follower_uid = ?)) DESC, (u.pseudo = ?) DESC, u.pseudo
+       LIMIT 6`,
+      [uid, raw, prefix, prefix, raw, uid, uid, uid, uid, raw],
+    );
+    res.json(users.map(toUser));
+  } catch (err) {
+    console.error('[SOCIAL] Mention suggestions error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 export default router;

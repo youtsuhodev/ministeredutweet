@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
+import MentionTextarea from './MentionTextarea';
 
 interface ComposeBoxProps {
   onPosted?: () => void;
@@ -93,9 +94,9 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
     <div className={`flex gap-3 ${compact ? 'p-3' : 'p-4'} border-b border-[var(--border-color)]`}>
       <Avatar src={user?.avatar} name={user?.pseudo} />
       <div className="flex-1 min-w-0">
-        <textarea
+        <MentionTextarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onValueChange={setText}
           onKeyDown={handleKeyDown}
           // biome-ignore lint/a11y/noAutofocus: la fenêtre de rédaction doit être prête à écrire dès son ouverture
           autoFocus={autoFocus}

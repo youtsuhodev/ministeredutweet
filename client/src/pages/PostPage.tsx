@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
+import MentionTextarea from '../components/MentionTextarea';
 import Avatar from '../components/Avatar';
 import PageHeader from '../components/PageHeader';
 import PostCard, { type Post, type PostUser } from '../components/PostCard';
@@ -104,9 +105,9 @@ export default function PostPage() {
           <form onSubmit={send} className="flex gap-3 p-4 border-b border-[var(--border-color)]">
             <Avatar src={me?.avatar} name={me?.pseudo} />
             <div className="flex-1 min-w-0">
-              <textarea
+              <MentionTextarea
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onValueChange={setText}
                 maxLength={280}
                 rows={2}
                 aria-label="Ton commentaire"
