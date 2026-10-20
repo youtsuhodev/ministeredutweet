@@ -76,7 +76,7 @@ export default function LoginPage() {
         </div>
 
         <h2 className="text-3xl font-extrabold text-[var(--text-primary)] mb-6">
-          {mode === 'login' ? 'Connexion au Ministère du vide' : 'Crée ton compte'}
+          {mode === 'login' ? 'Connexion' : 'Crée ton compte'}
         </h2>
 
         {error && (
