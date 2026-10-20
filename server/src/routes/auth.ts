@@ -64,7 +64,7 @@ const loginByEmailLimiter = rateLimit({
 const mailLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Trop de demandes, réessaie plus tard' });
 
 function appUrl(): string {
-  return (process.env.APP_URL || 'http://localhost:7285').replace(/\/$/, '');
+  return (process.env.APP_URL || 'http://localhost:7286').replace(/\/$/, '');
 }
 
 async function startSession(req: Request, res: Response, uid: string) {

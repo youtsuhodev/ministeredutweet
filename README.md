@@ -120,10 +120,10 @@ Les tables sont créées automatiquement au démarrage du serveur (`server/src/m
 ### Développement
 
 ```bash
-npm run dev     # serveur Express + Vite (HMR) sur http://localhost:7285
+npm run dev     # serveur Express + Vite (HMR) sur http://localhost:7286
 ```
 
-Variante : `npm --prefix client run dev` lance Vite seul sur `:5173` et proxifie `/api` et `/uploads` vers `:7285`.
+Variante : `npm --prefix client run dev` lance Vite seul sur `:5173` et proxifie `/api` et `/uploads` vers `:7286`.
 
 ### Production
 

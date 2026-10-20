@@ -26,7 +26,7 @@ import { sweepOrphanUploads, uploadsDir } from './services/uploads.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = Number(process.env.PORT) || 7285;
+const PORT = Number(process.env.PORT) || 7286;
 const distPath = resolve(__dirname, '../../client/dist');
 /* Lancé depuis src/ (tsx watch) = développement : on sert toujours Vite, même si un
    client/dist traîne. Sinon ce build obsolète prend le dessus et le navigateur charge
