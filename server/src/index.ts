@@ -133,7 +133,7 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'Route introuvable'
 /* Fichiers du build : les bundles hachés (/assets/index-AbCd1234.js) ne changent jamais → cache d'un an ;
    la page d'entrée, le service worker et le manifeste doivent toujours être revalidés. */
 const HASHED_ASSET_RE = /[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/;
-const ALWAYS_REVALIDATE_RE = /(?:index\.html|sw\.js|theme\.js|manifest\.webmanifest)$/;
+const ALWAYS_REVALIDATE_RE = /(?:index\.html|sw\.js|theme\.js|offline\.(?:html|js)|manifest\.webmanifest)$/;
 
 async function start() {
   try {

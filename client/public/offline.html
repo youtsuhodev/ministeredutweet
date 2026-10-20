@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#020617" />
+  <title>Hors ligne — Ministère du vide</title>
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body {
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      background: #020617; color: #e2e8f0; padding: 24px; box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    main { max-width: 380px; }
+    img { width: 72px; height: 72px; border-radius: 16px; margin-bottom: 16px; }
+    h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    p { color: #94a3b8; line-height: 1.5; margin: 0 0 24px; }
+    button {
+      background: #00a2f5; color: #fff; border: 0; border-radius: 999px;
+      padding: 12px 28px; font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    @media (prefers-color-scheme: light) {
+      body { background: #eef2f7; color: #0f172a; }
+      p { color: #475569; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/assets/pwa/icon-192.png" alt="" />
+    <h1>Tu es hors ligne</h1>
+    <p>Le Ministère du vide a besoin d'une connexion pour charger ton fil. Vérifie ton réseau puis réessaie.</p>
+    <button type="button" id="retry">Réessayer</button>
+  </main>
+  <script src="/offline.js"></script>
+</body>
+</html>

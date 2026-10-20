@@ -1,5 +1,13 @@
-const VERSION = 'wouaff-v3';
-const CORE_ASSETS = ['/', '/index.html', '/manifest.webmanifest'];
+const VERSION = 'ministere-v4';
+const OFFLINE_URL = '/offline.html';
+const CORE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  OFFLINE_URL,
+  '/offline.js',
+  '/assets/pwa/icon-192.png',
+];
 
 /* Cache les ressources du shell de l'app à l'installation */
 self.addEventListener('install', (event) => {
@@ -58,7 +66,8 @@ self.addEventListener('fetch', (event) => {
           const cached = await caches.match('/index.html');
           if (cached) return cached;
           const home = await caches.match('/');
-          return home || Response.error();
+          if (home) return home;
+          return (await caches.match(OFFLINE_URL)) || Response.error();
         }
       })(),
     );

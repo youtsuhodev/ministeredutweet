@@ -1,4 +1,4 @@
-import { Camera, Palette, Shield, ShieldAlert, User, UserCog } from 'lucide-react';
+import { Camera, Download, Palette, Shield, ShieldAlert, User, UserCog } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { EmailForm, PseudoForm } from '../components/IdentityForms';
 import PageHeader from '../components/PageHeader';
 import RecoveryCodes from '../components/RecoveryCodes';
 import { useAuth } from '../hooks/useAuth';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { type ThemePreference, useTheme } from '../hooks/useTheme';
 import { fullDate } from '../lib/time';
 import { api, errorMessage } from '../services/api';
@@ -18,7 +19,7 @@ const SETTINGS_TABS = [
   { id: 'account', label: 'Ton compte', icon: User, description: 'Identifiants, mot de passe, e-mail.' },
   { id: 'profile', label: 'Profil', icon: UserCog, description: 'Photo, bannière, bio, liens.' },
   { id: 'security', label: 'Sécurité', icon: Shield, description: 'Double authentification, sessions.' },
-  { id: 'display', label: 'Affichage', icon: Palette, description: 'Thème clair, sombre ou auto.' },
+  { id: 'display', label: 'Affichage', icon: Palette, description: 'Thème clair, sombre ou auto, installation.' },
   { id: 'privacy', label: 'Confidentialité', icon: ShieldAlert, description: 'Blocages, export, suppression.' },
 ] as const;
 
@@ -658,6 +659,41 @@ function SecurityTab({ user, refresh }: { user: CurrentUser; refresh: () => Prom
 
 /* ── Affichage ──────────────────────────────────────────────────────────────── */
 
+function InstallApp() {
+  const { canInstall, installed, ios, install } = useInstallPrompt();
+  let content: ReactNode;
+  if (installed) {
+    content = <p className="text-sm text-[var(--text-secondary)]">L'application est installée sur cet appareil.</p>;
+  } else if (canInstall) {
+    content = (
+      <button type="button" onClick={install} className={`${primaryBtn} inline-flex items-center gap-2`}>
+        <Download className="w-4 h-4" /> Installer l'application
+      </button>
+    );
+  } else if (ios) {
+    content = (
+      <p className="text-sm text-[var(--text-secondary)]">
+        Dans Safari, touche le bouton Partager puis « Sur l'écran d'accueil ».
+      </p>
+    );
+  } else {
+    content = (
+      <p className="text-sm text-[var(--text-secondary)]">
+        Utilise le menu de ton navigateur et choisis « Installer l'application » (ou « Ajouter à l'écran d'accueil »).
+      </p>
+    );
+  }
+  return (
+    <div className="mt-10">
+      <h2 className="font-extrabold text-xl mb-2">Application</h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-4">
+        Installe le Ministère du vide pour l'ouvrir comme une vraie application, en plein écran.
+      </p>
+      {content}
+    </div>
+  );
+}
+
 function DisplayTab() {
   const { preference, setPreference } = useTheme();
   const options: { id: ThemePreference; label: string }[] = [
@@ -690,6 +726,7 @@ function DisplayTab() {
           </label>
         ))}
       </div>
+      <InstallApp />
     </div>
   );
 }
