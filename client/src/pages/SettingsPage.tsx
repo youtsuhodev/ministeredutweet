@@ -12,6 +12,7 @@ import RecoveryCodes from '../components/RecoveryCodes';
 import { useAuth } from '../hooks/useAuth';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { type ThemePreference, useTheme } from '../hooks/useTheme';
+import type { DmPolicy } from '../lib/messages';
 import { fullDate } from '../lib/time';
 import { api, errorMessage } from '../services/api';
 import type { CurrentUser } from '../services/auth';
@@ -742,6 +743,77 @@ interface BlockedUser {
   avatar: string | null;
 }
 
+/* ── Messages privés : qui peut m'écrire ────────────────────────────────────── */
+
+const DM_OPTIONS: { id: DmPolicy; label: string; hint: string }[] = [
+  { id: 'everyone', label: 'Tout le monde', hint: "N'importe quel compte peut t'écrire." },
+  { id: 'mutual', label: 'Abonnés mutuels', hint: 'Seulement les comptes que tu suis et qui te suivent.' },
+  { id: 'none', label: 'Personne', hint: "Tu n'acceptes aucun nouveau message privé." },
+];
+
+function DmSettings() {
+  const [policy, setPolicy] = useState<DmPolicy | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api
+      .get<{ dmPolicy: DmPolicy }>('/messages/settings')
+      .then((r) => setPolicy(r.dmPolicy))
+      .catch(() => setError('Impossible de charger ce réglage'));
+  }, []);
+
+  const choose = async (next: DmPolicy) => {
+    const previous = policy;
+    setPolicy(next);
+    setError('');
+    try {
+      await api.put('/messages/settings', { dmPolicy: next });
+    } catch (err) {
+      setPolicy(previous);
+      setError(errorMessage(err));
+    }
+  };
+
+  return (
+    <div className="mb-8">
+      <h2 className="font-extrabold text-xl mb-2">Messages privés</h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-3">
+        Choisis qui peut t'écrire ou t'ajouter à un groupe. Les comptes que tu as bloqués ne peuvent jamais t'écrire.
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Qui peut t'écrire"
+        className="border border-[var(--border-color)] rounded-xl overflow-hidden"
+      >
+        {DM_OPTIONS.map((o) => (
+          <label
+            key={o.id}
+            className="flex items-start gap-3 px-4 py-3 border-b last:border-b-0 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-tertiary)]"
+          >
+            <input
+              type="radio"
+              name="dm-policy"
+              checked={policy === o.id}
+              disabled={policy === null}
+              onChange={() => choose(o.id)}
+              className="accent-[var(--accent)] mt-1"
+            />
+            <span>
+              <span className="block font-bold text-[var(--text-primary)]">{o.label}</span>
+              <span className="block text-sm text-[var(--text-secondary)]">{o.hint}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-[var(--danger)] mt-2">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PrivacyTab() {
   const { user, logout } = useAuth();
   const [blocked, setBlocked] = useState<BlockedUser[]>([]);
@@ -806,6 +878,7 @@ function PrivacyTab() {
 
   return (
     <div>
+      <DmSettings />
       <h2 className="font-extrabold text-xl mb-2">Comptes bloqués</h2>
       <div className="border border-[var(--border-color)] rounded-xl overflow-hidden mb-8">
         {blocked.length === 0 && (

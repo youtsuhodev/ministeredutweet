@@ -110,9 +110,9 @@ export function attachRealtime(server: Server, appOrigin: string): void {
 
   function register(ws: WebSocket, uid: string, sessionId: string): void {
     states.set(ws, { uid, sessionId, alive: true, visible: true, lastTypingAt: 0 });
-    let set = byUser.get(uid);
-    if (!set) byUser.set(uid, (set = new Set()));
+    const set = byUser.get(uid) ?? new Set<WebSocket>();
     set.add(ws);
+    byUser.set(uid, set);
 
     ws.on('pong', () => {
       const s = states.get(ws);

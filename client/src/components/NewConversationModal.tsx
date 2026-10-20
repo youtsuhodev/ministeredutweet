@@ -64,7 +64,9 @@ export default function NewConversationModal({ onClose }: Props) {
   };
 
   const toggle = (user: UserSummary) =>
-    setSelected((cur) => (cur.some((u) => u.uid === user.uid) ? cur.filter((u) => u.uid !== user.uid) : [...cur, user]));
+    setSelected((cur) =>
+      cur.some((u) => u.uid === user.uid) ? cur.filter((u) => u.uid !== user.uid) : [...cur, user],
+    );
 
   const createGroup = async () => {
     if (!title.trim()) return setError('Donne un nom au groupe');
@@ -164,6 +166,7 @@ export default function NewConversationModal({ onClose }: Props) {
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
             <input
+              // biome-ignore lint/a11y/noAutofocus: la fenêtre vient de s'ouvrir pour chercher quelqu'un
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}

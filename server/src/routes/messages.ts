@@ -72,14 +72,24 @@ async function resolvePseudos(raw: unknown): Promise<Person[]> {
   return people;
 }
 
-const sendLimiter = rateLimit({ windowMs: 60_000, max: 60, message: 'Tu envoies trop de messages, ralentis', key: byUser });
+const sendLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  message: 'Tu envoies trop de messages, ralentis',
+  key: byUser,
+});
 const createLimiter = rateLimit({
   windowMs: 10 * 60_000,
   max: 20,
   message: 'Trop de nouvelles conversations, réessaie plus tard',
   key: byUser,
 });
-const manageLimiter = rateLimit({ windowMs: 60_000, max: 30, message: 'Trop de requêtes, ralentis un peu', key: byUser });
+const manageLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  message: 'Trop de requêtes, ralentis un peu',
+  key: byUser,
+});
 const uploadLimiter = rateLimit({
   windowMs: 10 * 60_000,
   max: 40,
@@ -232,9 +242,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
   try {
     const id = idParam(req.params.id);
     if (!id) return res.status(404).json({ error: 'Conversation introuvable' });
-    res.json(
-      await getMessages(currentUser(req).uid, id, idParam(req.query.before), toInt(req.query.limit, 30, 1, 50)),
-    );
+    res.json(await getMessages(currentUser(req).uid, id, idParam(req.query.before), toInt(req.query.limit, 30, 1, 50)));
   } catch (err) {
     fail(res, err);
   }
@@ -310,7 +318,10 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, privateUploadsDir),
   filename: (_req, file, cb) => {
     const mime = baseMime(file.mimetype);
-    cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}.${EXT_BY_MIME[mime] ?? AUDIO_EXT_BY_MIME[mime] ?? 'bin'}`);
+    cb(
+      null,
+      `${Date.now()}-${randomBytes(6).toString('hex')}.${EXT_BY_MIME[mime] ?? AUDIO_EXT_BY_MIME[mime] ?? 'bin'}`,
+    );
   },
 });
 const uploadMedia = multer({
@@ -335,7 +346,11 @@ router.post(
       if (!err) return next();
       const tooBig = (err as { code?: string }).code === 'LIMIT_FILE_SIZE';
       res.status(400).json({
-        error: tooBig ? (isAudio ? 'Message vocal trop volumineux (4 Mo max)' : 'Fichier trop volumineux (30 Mo max)') : (err as Error).message,
+        error: tooBig
+          ? isAudio
+            ? 'Message vocal trop volumineux (4 Mo max)'
+            : 'Fichier trop volumineux (30 Mo max)'
+          : (err as Error).message,
       });
     });
   },
@@ -345,7 +360,10 @@ router.post(
     const result = await finalizeUpload(req.file.path, kind);
     if (!result) {
       return res.status(400).json({
-        error: kind === 'audio' ? "Ce fichier n'est pas un enregistrement audio valide" : "Ce fichier n'est pas une image ou une vidéo valide",
+        error:
+          kind === 'audio'
+            ? "Ce fichier n'est pas un enregistrement audio valide"
+            : "Ce fichier n'est pas une image ou une vidéo valide",
       });
     }
     await registerUpload(currentUser(req).uid, result.filename, result.type);

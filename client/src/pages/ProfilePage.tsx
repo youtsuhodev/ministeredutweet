@@ -1,6 +1,6 @@
-import { Calendar, LinkIcon, MapPin } from 'lucide-react';
+import { Calendar, LinkIcon, Mail, MapPin } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import Avatar from '../components/Avatar';
 import FollowButton from '../components/FollowButton';
@@ -10,8 +10,9 @@ import PostList from '../components/PostList';
 import RichText from '../components/RichText';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { usePaged } from '../hooks/usePaged';
+import { openDirect } from '../lib/messages';
 import { monthYear, timeAgo } from '../lib/time';
-import { api } from '../services/api';
+import { api, errorMessage } from '../services/api';
 
 interface Profile {
   uid: string;
@@ -48,6 +49,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState<'loading' | 'ok' | 'missing'>('loading');
   const [tab, setTab] = useState<(typeof TABS)[number]>('posts');
+  const navigate = useNavigate();
+  const [dmError, setDmError] = useState('');
 
   const loadProfile = useCallback(async () => {
     try {
@@ -78,6 +81,16 @@ export default function ProfilePage() {
         : Promise.resolve([]),
     `${pseudo}|${tab}`,
   );
+
+  /* Ouvre la conversation privée ; le serveur refuse si la personne n'accepte pas les messages de ta part. */
+  const startMessage = async () => {
+    setDmError('');
+    try {
+      navigate(`/messages/${await openDirect(pseudo)}`);
+    } catch (err) {
+      setDmError(errorMessage(err, "Impossible d'ouvrir la conversation"));
+    }
+  };
 
   const toggleBlock = async () => {
     if (!profile) return;
@@ -150,6 +163,17 @@ export default function ProfilePage() {
                 {profile.isBlocked ? 'Débloquer' : 'Bloquer'}
               </button>
               {!profile.isBlocked && !profile.hasBlockedMe && (
+                <button
+                  type="button"
+                  onClick={startMessage}
+                  aria-label={`Envoyer un message à @${profile.pseudo}`}
+                  title="Envoyer un message"
+                  className="p-2 rounded-full border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <Mail className="w-5 h-5" />
+                </button>
+              )}
+              {!profile.isBlocked && !profile.hasBlockedMe && (
                 <FollowButton
                   key={profile.uid}
                   pseudo={profile.pseudo}
@@ -166,6 +190,11 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {dmError && (
+          <p role="alert" className="text-sm text-[var(--danger)] mb-2 text-right">
+            {dmError}
+          </p>
+        )}
         <div>
           <div className="flex items-center gap-1.5">
             <h2 className="font-extrabold text-xl">{profile.displayName || profile.pseudo}</h2>

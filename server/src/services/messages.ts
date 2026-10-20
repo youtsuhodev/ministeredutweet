@@ -231,7 +231,8 @@ export async function createGroup(me: Person, title: string, others: Person[]): 
   if (!name) throw new MessagingError('Donne un nom au groupe');
   const unique = [...new Map(others.filter((p) => p.uid !== me.uid).map((p) => [p.uid, p])).values()];
   if (unique.length < 1) throw new MessagingError('Ajoute au moins une personne');
-  if (unique.length + 1 > MAX_GROUP_MEMBERS) throw new MessagingError(`Un groupe compte ${MAX_GROUP_MEMBERS} membres au plus`);
+  if (unique.length + 1 > MAX_GROUP_MEMBERS)
+    throw new MessagingError(`Un groupe compte ${MAX_GROUP_MEMBERS} membres au plus`);
   for (const p of unique) {
     try {
       await assertCanMessage(me.uid, p.uid);
@@ -248,10 +249,12 @@ export async function createGroup(me: Person, title: string, others: Person[]): 
       [name, me.uid, now, now],
     );
     const convId = (res as ResultSetHeader).insertId;
-    await conn.execute(
-      'INSERT INTO conversation_members (conversation_id, uid, role, joined_at) VALUES (?, ?, ?, ?)',
-      [convId, me.uid, 'owner', now],
-    );
+    await conn.execute('INSERT INTO conversation_members (conversation_id, uid, role, joined_at) VALUES (?, ?, ?, ?)', [
+      convId,
+      me.uid,
+      'owner',
+      now,
+    ]);
     for (const p of unique) {
       await conn.execute(
         'INSERT INTO conversation_members (conversation_id, uid, role, joined_at) VALUES (?, ?, ?, ?)',
@@ -307,7 +310,14 @@ async function getMessageDto(messageId: number): Promise<MessageDto | null> {
 
 async function buildConversationDtos(
   uid: string,
-  rows: Array<ConversationRow & { role: 'owner' | 'member'; muted: number; last_read_message_id: number; cleared_before_id: number }>,
+  rows: Array<
+    ConversationRow & {
+      role: 'owner' | 'member';
+      muted: number;
+      last_read_message_id: number;
+      cleared_before_id: number;
+    }
+  >,
 ): Promise<ConversationDto[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
@@ -593,17 +603,21 @@ async function removeMediaFile(filename: string | null): Promise<void> {
 }
 
 export async function deleteMessage(uid: string, messageId: number): Promise<void> {
-  const msg = await getOne<{ id: number; conversation_id: number; sender_uid: string; kind: string; media: string | null; deleted_at: number | null }>(
-    'SELECT id, conversation_id, sender_uid, kind, media, deleted_at FROM messages WHERE id = ?',
-    [messageId],
-  );
+  const msg = await getOne<{
+    id: number;
+    conversation_id: number;
+    sender_uid: string;
+    kind: string;
+    media: string | null;
+    deleted_at: number | null;
+  }>('SELECT id, conversation_id, sender_uid, kind, media, deleted_at FROM messages WHERE id = ?', [messageId]);
   if (!msg || msg.sender_uid !== uid || msg.kind !== 'text') throw new MessagingError('Message introuvable', 404);
   await requireMember(uid, msg.conversation_id);
   if (msg.deleted_at) return;
-  await query('UPDATE messages SET deleted_at = ?, body = NULL, media = NULL, media_type = NULL, media_duration = NULL WHERE id = ?', [
-    Date.now(),
-    messageId,
-  ]);
+  await query(
+    'UPDATE messages SET deleted_at = ?, body = NULL, media = NULL, media_type = NULL, media_duration = NULL WHERE id = ?',
+    [Date.now(), messageId],
+  );
   await removeMediaFile(msg.media);
   publishToUsers(await memberUids(msg.conversation_id), {
     type: 'message_deleted',
@@ -618,7 +632,7 @@ export async function getMessageForReport(uid: string, messageId: number) {
     `SELECT ${MESSAGE_COLUMNS} FROM messages msg LEFT JOIN users u ON u.uid = msg.sender_uid WHERE msg.id = ?`,
     [messageId],
   );
-  if (!msg || msg.kind !== 'text' || msg.deleted_at) throw new MessagingError('Message introuvable', 404);
+  if (msg?.kind !== 'text' || msg.deleted_at) throw new MessagingError('Message introuvable', 404);
   const { membership } = await requireMember(uid, msg.conversation_id);
   if (msg.id <= membership.cleared_before_id || msg.sender_uid === uid) {
     throw new MessagingError('Message introuvable', 404);
@@ -830,11 +844,10 @@ export async function purgeUserMessaging(uid: string): Promise<void> {
         'SELECT id, created_at FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 1',
         [g.conversation_id],
       );
-      await query('UPDATE conversations SET last_message_id = ?, last_message_at = COALESCE(?, last_message_at) WHERE id = ?', [
-        last?.id ?? null,
-        last?.created_at ?? null,
-        g.conversation_id,
-      ]);
+      await query(
+        'UPDATE conversations SET last_message_id = ?, last_message_at = COALESCE(?, last_message_at) WHERE id = ?',
+        [last?.id ?? null, last?.created_at ?? null, g.conversation_id],
+      );
       publishToUsers(
         rest.map((r) => r.uid),
         { type: 'conversation', conversationId: g.conversation_id },

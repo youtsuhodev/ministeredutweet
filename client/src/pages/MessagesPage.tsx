@@ -1,30 +1,16 @@
-import { BellOff, Mail, SquarePen, Users } from 'lucide-react';
+import { BellOff, Mail, SquarePen } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppShell from '../components/AppShell';
-import Avatar from '../components/Avatar';
+import ConversationAvatar from '../components/ConversationAvatar';
 import NewConversationModal from '../components/NewConversationModal';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtimeEvents } from '../hooks/useRealtime';
-import { type Conversation, conversationTitle, listTime, otherMember } from '../lib/messages';
+import { type Conversation, conversationTitle, listTime } from '../lib/messages';
 import { api, errorMessage } from '../services/api';
 
 const PAGE = 30;
-
-export function ConversationAvatar({ conversation, meUid, className }: { conversation: Conversation; meUid: string; className?: string }) {
-  if (conversation.type === 'group') {
-    return (
-      <div
-        className={`rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex-shrink-0 flex items-center justify-center ${className ?? 'w-12 h-12'}`}
-      >
-        <Users className="w-1/2 h-1/2" />
-      </div>
-    );
-  }
-  const other = otherMember(conversation, meUid);
-  return <Avatar src={other?.avatar} name={other?.pseudo} className={className ?? 'w-12 h-12 text-base'} />;
-}
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -127,7 +113,9 @@ export default function MessagesPage() {
                     >
                       {conversationTitle(c, user.uid)}
                     </span>
-                    {c.muted && <BellOff className="w-3.5 h-3.5 text-[var(--text-secondary)] flex-shrink-0 self-center" />}
+                    {c.muted && (
+                      <BellOff className="w-3.5 h-3.5 text-[var(--text-secondary)] flex-shrink-0 self-center" />
+                    )}
                     {c.lastMessage && (
                       <span className="ml-auto text-xs text-[var(--text-secondary)] flex-shrink-0">
                         {listTime(c.lastMessage.at)}

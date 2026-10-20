@@ -73,14 +73,14 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
       <RightSidebar />
 
       {!chat && (
-      <button
-        type="button"
-        onClick={() => setShowCompose(true)}
-        aria-label="Nouveau post"
-        className="md:hidden fixed right-4 bottom-20 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center"
-      >
-        <Feather className="w-6 h-6" />
-      </button>
+        <button
+          type="button"
+          onClick={() => setShowCompose(true)}
+          aria-label="Nouveau post"
+          className="md:hidden fixed right-4 bottom-20 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center"
+        >
+          <Feather className="w-6 h-6" />
+        </button>
       )}
 
       {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => onPosted?.()} />}

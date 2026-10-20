@@ -1,13 +1,4 @@
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { type ChatMessage, mediaLabel, personName } from '../lib/messages';
 import { api } from '../services/api';
@@ -108,7 +99,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const sendPresence = () => {
       const ws = socket.current;
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'presence', visible: document.visibilityState === 'visible' && document.hasFocus() }));
+        ws.send(
+          JSON.stringify({ type: 'presence', visible: document.visibilityState === 'visible' && document.hasFocus() }),
+        );
       }
     };
 

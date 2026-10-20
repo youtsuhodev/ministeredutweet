@@ -369,10 +369,7 @@ export async function deletePost(postId: number, uid: string): Promise<boolean> 
     video: string | null;
     audio: string | null;
     is_public: number;
-  }>(
-    'SELECT id, image, video, audio, is_public FROM posts WHERE id = ? AND uid = ?',
-    [postId, uid],
-  );
+  }>('SELECT id, image, video, audio, is_public FROM posts WHERE id = ? AND uid = ?', [postId, uid]);
   if (!row) return false;
   await purgePost(row);
   return true;
@@ -386,10 +383,7 @@ export async function deletePostAsModerator(postId: number): Promise<boolean> {
     video: string | null;
     audio: string | null;
     is_public: number;
-  }>(
-    'SELECT id, image, video, audio, is_public FROM posts WHERE id = ?',
-    [postId],
-  );
+  }>('SELECT id, image, video, audio, is_public FROM posts WHERE id = ?', [postId]);
   if (!row) return false;
   await purgePost(row);
   return true;
