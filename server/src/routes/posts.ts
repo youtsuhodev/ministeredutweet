@@ -10,6 +10,7 @@ import {
   createReport,
   deleteComment,
   deletePost,
+  extractMentions,
   findPostById,
   getComments,
   isBlockedEitherWay,
@@ -18,6 +19,7 @@ import {
   type ReportCategory,
   toggleLike,
   toggleRepost,
+  updatePostText,
 } from '../services/rtdb.js';
 import { uploadExists } from '../services/uploads.js';
 import { isSafeUploadPath, parseId, toInt } from '../utils/validation.js';
@@ -49,6 +51,12 @@ const commentLimiter = rateLimit({
   windowMs: minute,
   max: 30,
   message: 'Tu commentes trop vite, patiente un peu',
+  key: byUser,
+});
+const editLimiter = rateLimit({
+  windowMs: minute,
+  max: 20,
+  message: 'Tu modifies trop vite, patiente un peu',
   key: byUser,
 });
 const reportLimiter = rateLimit({
@@ -123,6 +131,32 @@ router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, 
     res.json({ id: postId });
   } catch (err) {
     console.error('[POSTS] Create error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/* Modification du texte d'un de ses posts (le média ne change pas). Les mentions ajoutées sont notifiées. */
+router.put('/:id', authMiddleware, requireVerifiedEmail, editLimiter, async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (!id) return res.status(404).json({ error: 'Post introuvable' });
+    const uid = currentUser(req).uid;
+    const cleanText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    if (cleanText.length > 280) {
+      return res.status(400).json({ error: 'Le post ne peut pas dépasser 280 caractères' });
+    }
+    const result = await updatePostText(id, uid, cleanText || null);
+    if (!result) return res.status(404).json({ error: 'Post introuvable' });
+    if ('error' in result) {
+      return res.status(400).json({ error: 'Le post ne peut pas être vide' });
+    }
+    if (result.changed && cleanText) {
+      await notifyMentions(cleanText, uid, id, [], extractMentions(result.previousText));
+    }
+    const [post] = await fetchPosts(uid, filters.single(id), 1, 0);
+    res.json({ text: post?.text ?? (cleanText || null), editedAt: post?.editedAt ?? null });
+  } catch (err) {
+    console.error('[POSTS] Edit error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

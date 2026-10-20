@@ -12,6 +12,7 @@ export interface FeedPost {
   audio: string | null;
   audioDuration: number | null;
   createdAt: string;
+  editedAt: string | null;
   feedAt: string;
   likesCount: number;
   repostsCount: number;
@@ -63,6 +64,7 @@ interface Row {
   audio: string | null;
   audio_duration: number | null;
   created_at: string;
+  edited_at: string | null;
   uid: string;
   pseudo: string;
   displayName: string | null;
@@ -86,7 +88,7 @@ export async function fetchPosts(
   const rows = await query<Row[]>(
     `SELECT p.id AS feed_id, p.created_at AS feed_at, p.repost_of,
             ru.uid AS actor_uid, ru.pseudo AS actor_pseudo, ru.displayName AS actor_name,
-            s.id AS id, s.text, s.image, s.video, s.audio, s.audio_duration, s.created_at,
+            s.id AS id, s.text, s.image, s.video, s.audio, s.audio_duration, s.created_at, s.edited_at,
             su.uid AS uid, su.pseudo, su.displayName, su.avatar, su.verified,
             (SELECT COUNT(*) FROM likes WHERE post_id = s.id) AS likes_count,
             (SELECT COUNT(*) FROM posts WHERE repost_of = s.id) AS reposts_count,
@@ -116,6 +118,7 @@ export async function fetchPosts(
     audio: r.audio,
     audioDuration: r.audio_duration,
     createdAt: r.created_at,
+    editedAt: r.edited_at,
     feedAt: r.feed_at,
     likesCount: r.likes_count,
     repostsCount: r.reposts_count,

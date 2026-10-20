@@ -326,6 +326,30 @@ export async function createPost(
   return result.insertId;
 }
 
+/* Pseudos cités dans un texte (même règle que les notifications de mention). */
+export function extractMentions(text: string | null): string[] {
+  if (!text) return [];
+  return [...new Set([...text.matchAll(MENTION_RE)].map((m) => m[1]))];
+}
+
+/* Modifie le texte d'un post (pas d'un repost) appartenant à `uid` ; le média reste inchangé.
+   Renvoie le post modifié, ou null s'il n'existe pas / n'appartient pas à `uid` / est un repost. */
+export async function updatePostText(postId: number, uid: string, text: string | null) {
+  const row = await getOne<{
+    id: number;
+    text: string | null;
+    image: string | null;
+    video: string | null;
+    audio: string | null;
+  }>('SELECT id, text, image, video, audio FROM posts WHERE id = ? AND uid = ? AND repost_of IS NULL', [postId, uid]);
+  if (!row) return null;
+  const hasMedia = !!(row.image || row.video || row.audio);
+  if (!text && !hasMedia) return { error: 'empty' as const };
+  if ((row.text ?? null) === text) return { previousText: row.text, changed: false as const };
+  await query('UPDATE posts SET text = ?, edited_at = CURRENT_TIMESTAMP WHERE id = ? AND uid = ?', [text, postId, uid]);
+  return { previousText: row.text, changed: true as const };
+}
+
 export async function findPostById(postId: number) {
   return getOne<{ id: number; uid: string; text: string | null; repost_of: number | null }>(
     'SELECT * FROM posts WHERE id = ?',
@@ -494,9 +518,16 @@ export async function createSystemNotification(uid: string, type: string, messag
 const MENTION_RE = /(?:^|[^\w])@([a-zA-Z0-9_]{3,30})/g;
 
 /* Notifie chaque @pseudo cité (une fois), sauf l'auteur et ceux déjà notifiés pour ce post. */
-export async function notifyMentions(text: string, actorUid: string, postId: number, skipUids: string[] = []) {
+export async function notifyMentions(
+  text: string,
+  actorUid: string,
+  postId: number,
+  skipUids: string[] = [],
+  skipPseudos: string[] = [],
+) {
+  const skip = new Set(skipPseudos.map((p) => p.toLowerCase()));
   const pseudos = new Set<string>();
-  for (const m of text.matchAll(MENTION_RE)) pseudos.add(m[1]);
+  for (const m of text.matchAll(MENTION_RE)) if (!skip.has(m[1].toLowerCase())) pseudos.add(m[1]);
   for (const pseudo of [...pseudos].slice(0, 10)) {
     const target = await findUserByPseudo(pseudo);
     if (target && !skipUids.includes(target.uid)) await createNotification(target.uid, 'mention', actorUid, postId);
@@ -604,7 +635,7 @@ export async function exportUserData(uid: string) {
       [uid],
     ),
     query<unknown[]>(
-      'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at FROM posts WHERE uid = ?',
+      'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at, edited_at FROM posts WHERE uid = ?',
       [uid],
     ),
     query<unknown[]>('SELECT id, post_id, text, created_at FROM comments WHERE uid = ?', [uid]),

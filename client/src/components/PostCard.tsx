@@ -1,10 +1,11 @@
-import { Ban, Flag, Heart, Link2, MessageCircle, MoreHorizontal, Repeat2, Share, Trash2 } from 'lucide-react';
+import { Ban, Flag, Heart, Link2, MessageCircle, MoreHorizontal, Pencil, Repeat2, Share, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { fullDate, timeAgo } from '../lib/time';
-import { api } from '../services/api';
+import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
+import MentionTextarea from './MentionTextarea';
 import ReportDialog from './ReportDialog';
 import RichText from './RichText';
 import VerifiedBadge from './VerifiedBadge';
@@ -29,6 +30,7 @@ export interface Post {
   audio: string | null;
   audioDuration: number | null;
   createdAt: string;
+  editedAt: string | null;
   feedAt: string;
   likesCount: number;
   repostsCount: number;
@@ -71,6 +73,13 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [reporting, setReporting] = useState(false);
+  /* texte affiché : suit les modifications sans recharger le fil */
+  const [text, setText] = useState(post.text);
+  const [editedAt, setEditedAt] = useState(post.editedAt);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const flash = (msg: string) => {
     setNotice(msg);
@@ -81,6 +90,9 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const rowOwnerUid = post.repostedBy ? post.repostedBy.uid : post.user.uid;
   const canDelete = me?.uid === rowOwnerUid;
   const isOwnPost = me?.uid === post.user.uid;
+  /* seul l'auteur modifie son post, depuis la ligne d'origine (pas celle d'un repost) */
+  const canEdit = isOwnPost && !post.repostedBy;
+  const hasMedia = !!(post.image || post.video || post.audio);
 
   const handleLike = async () => {
     const next = !liked;
@@ -110,7 +122,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
     const url = postUrl(post.id);
     if (navigator.share) {
       try {
-        await navigator.share({ url, text: post.text || undefined });
+        await navigator.share({ url, text: text || undefined });
         return;
       } catch {
         /* partage annulé : on retombe sur la copie du lien */
@@ -128,6 +140,37 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
     } catch {
       flash('Suppression impossible');
     }
+  };
+
+  const startEdit = () => {
+    setMenuOpen(false);
+    setDraft(text ?? '');
+    setEditError('');
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    const next = draft.trim();
+    if (saving) return;
+    if (!next && !hasMedia) {
+      setEditError('Le post ne peut pas être vide');
+      return;
+    }
+    if (next === (text ?? '')) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    setEditError('');
+    try {
+      const res = await api.put<{ text: string | null; editedAt: string | null }>(`/posts/${post.id}`, { text: next });
+      setText(res.text);
+      setEditedAt(res.editedAt);
+      setEditing(false);
+    } catch (err) {
+      setEditError(errorMessage(err, 'Modification impossible, réessaie'));
+    }
+    setSaving(false);
   };
 
   const handleReport = () => {
@@ -148,7 +191,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
 
   const openPost = (e: React.MouseEvent) => {
     if (!linkToPost) return;
-    if ((e.target as HTMLElement).closest('a, button, video, audio, input, [data-no-open]')) return;
+    if ((e.target as HTMLElement).closest('a, button, video, audio, input, textarea, [data-no-open]')) return;
     navigate(`/post/${post.id}`);
   };
 
@@ -195,6 +238,14 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               >
                 {timeAgo(post.createdAt)}
               </time>
+              {editedAt && (
+                <span
+                  title={`Modifié le ${fullDate(editedAt)}`}
+                  className="text-[var(--text-secondary)] flex-shrink-0 text-sm"
+                >
+                  · modifié
+                </span>
+              )}
             </div>
             <div className="relative flex-shrink-0">
               <button
@@ -221,6 +272,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
                         flash((await copyToClipboard(postUrl(post.id))) ? 'Lien copié' : 'Copie impossible');
                       }}
                     />
+                    {canEdit && <MenuItem icon={<Pencil className="w-4 h-4" />} label="Modifier" onClick={startEdit} />}
                     {canDelete && (
                       <MenuItem
                         icon={<Trash2 className="w-4 h-4" />}
@@ -246,10 +298,55 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
             </div>
           </div>
 
-          {post.text && (
-            <p className="text-[var(--text-primary)] text-[15px] leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
-              <RichText text={post.text} />
-            </p>
+          {editing ? (
+            <div data-no-open className="mt-1">
+              <MentionTextarea
+                value={draft}
+                onValueChange={setDraft}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    saveEdit();
+                  } else if (e.key === 'Escape') {
+                    setEditing(false);
+                  }
+                }}
+                autoFocus
+                maxLength={280}
+                rows={3}
+                aria-label="Modifier le post"
+                className="w-full bg-transparent text-[var(--text-primary)] text-[15px] leading-relaxed outline-none resize-none rounded-xl border border-[var(--border-color)] focus:border-[var(--accent)] p-3"
+              />
+              {editError && (
+                <p role="alert" className="text-sm text-[var(--danger)] mt-1">
+                  {editError}
+                </p>
+              )}
+              <div className="flex items-center justify-end gap-3 mt-1">
+                <span className="text-sm text-[var(--text-secondary)]">{draft.length} / 280</span>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="text-sm font-bold text-[var(--text-secondary)] hover:underline"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  disabled={saving || (!draft.trim() && !hasMedia)}
+                  className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-bold rounded-full px-5 py-1.5 text-sm transition-colors"
+                >
+                  {saving ? '…' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            text && (
+              <p className="text-[var(--text-primary)] text-[15px] leading-relaxed mt-0.5 whitespace-pre-wrap break-words">
+                <RichText text={text} />
+              </p>
+            )
           )}
 
           {post.image && (

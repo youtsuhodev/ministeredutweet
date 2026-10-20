@@ -1,5 +1,6 @@
 [21/10/2026]
 - NOUVEAU : messages vocaux dans les publications (bouton micro dans l'éditeur, 2 min max, écoute avant de publier, lecteur dans le fil) ; fichiers audio WebM/Ogg/MP4 contrôlés sur leur contenu réel (4 Mo max), supprimés du disque avec le post ; migration `010_voice_posts.sql` (colonnes `audio` et `audio_duration`)
+- NOUVEAU : modification de ses posts (menu « … » → Modifier, édition en place, Ctrl+Entrée pour enregistrer, mention « modifié » avec la date en infobulle) ; les @mentions ajoutées à la modification sont notifiées, pas celles déjà présentes ; migration `011_post_edit.sql` (colonne `edited_at`)
 - NOUVEAU : autocomplétion des @mentions dans les publications et les réponses
 
 [20/10/2026 — 2]
