@@ -1,3 +1,7 @@
+[21/10/2026]
+- NOUVEAU : messages vocaux dans les publications (bouton micro dans l'éditeur, 2 min max, écoute avant de publier, lecteur dans le fil) ; fichiers audio WebM/Ogg/MP4 contrôlés sur leur contenu réel (4 Mo max), supprimés du disque avec le post ; migration `010_voice_posts.sql` (colonnes `audio` et `audio_duration`)
+- NOUVEAU : autocomplétion des @mentions dans les publications et les réponses
+
 [20/10/2026 — 2]
 - NOUVEAU : modération — rôles (utilisateur / modérateur / administrateur), signalements avec catégorie et retour au signaleur, file de traitement dans `/admin`, sanctions (avertissement, suppression de contenu, suspension en lecture seule, bannissement, suppression de compte), journal des actions, décisions notifiées à l'auteur avec motif et voie de contestation (socle « notice and action » du DSA, à faire valider par un juriste) ; `npm --prefix server run role -- <pseudo> admin` crée le premier administrateur
 - NOUVEAU : captcha Cap auto-hébergé (relayé par le serveur, calcul dans le navigateur, aucune ressource externe) à la place de Cloudflare Turnstile, ajouté à la connexion et au mot de passe oublié ; CSP sans `challenges.cloudflare.com`

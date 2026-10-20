@@ -1,4 +1,12 @@
-import { type KeyboardEvent, type TextareaHTMLAttributes, useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  type TextareaHTMLAttributes,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import { api } from '../services/api';
 import Avatar from './Avatar';
 import type { UserSummary } from './UserRow';

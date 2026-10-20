@@ -23,7 +23,14 @@ interface AdminReport {
   createdAt: string;
   reporter: string | null;
   openReportsOnPost: number;
-  post: { id: number; exists: boolean; text: string | null; image: string | null; video: string | null } | null;
+  post: {
+    id: number;
+    exists: boolean;
+    text: string | null;
+    image: string | null;
+    video: string | null;
+    audio: string | null;
+  } | null;
   target: { uid: string; pseudo: string; status: string; role: string } | null;
   resolution: string | null;
   handledAt: number | null;
@@ -150,6 +157,10 @@ function ReportCard({ report, isAdmin, onDone }: { report: AdminReport; isAdmin:
             {report.post.video && (
               // biome-ignore lint/a11y/useMediaCaption: média utilisateur signalé, sans piste de sous-titres
               <video src={report.post.video} controls preload="none" className="mt-2 max-h-48 rounded-lg" />
+            )}
+            {report.post.audio && (
+              // biome-ignore lint/a11y/useMediaCaption: message vocal signalé, sans transcription
+              <audio src={report.post.audio} controls preload="none" className="mt-2 w-full max-w-sm" />
             )}
             {!report.post.exists && (
               <p className="text-xs text-[var(--text-secondary)] mt-1">Post déjà supprimé (extrait conservé).</p>

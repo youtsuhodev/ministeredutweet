@@ -311,13 +311,18 @@ export async function getTrendingHashtags(days = 0, limit = 10): Promise<Hashtag
 
 /* ── Posts ──────────────────────────────────────────────────────────────────── */
 
-export async function createPost(uid: string, text: string | null, image: string | null, video?: string | null) {
-  const result = await query<{ insertId: number }>('INSERT INTO posts (uid, text, image, video) VALUES (?, ?, ?, ?)', [
-    uid,
-    text,
-    image,
-    video || null,
-  ]);
+export async function createPost(
+  uid: string,
+  text: string | null,
+  image: string | null,
+  video?: string | null,
+  audio?: string | null,
+  audioDuration?: number | null,
+) {
+  const result = await query<{ insertId: number }>(
+    'INSERT INTO posts (uid, text, image, video, audio, audio_duration) VALUES (?, ?, ?, ?, ?, ?)',
+    [uid, text, image, video || null, audio || null, audio ? (audioDuration ?? null) : null],
+  );
   return result.insertId;
 }
 
@@ -330,8 +335,8 @@ export async function findPostById(postId: number) {
 
 /* Supprime un post (ou annule un repost) appartenant à `uid`. Faux s'il n'existe pas / pas à lui. */
 export async function deletePost(postId: number, uid: string): Promise<boolean> {
-  const row = await getOne<{ id: number; image: string | null; video: string | null }>(
-    'SELECT id, image, video FROM posts WHERE id = ? AND uid = ?',
+  const row = await getOne<{ id: number; image: string | null; video: string | null; audio: string | null }>(
+    'SELECT id, image, video, audio FROM posts WHERE id = ? AND uid = ?',
     [postId, uid],
   );
   if (!row) return false;
@@ -341,8 +346,8 @@ export async function deletePost(postId: number, uid: string): Promise<boolean> 
 
 /* Suppression d'un post par la modération (sans condition d'auteur). */
 export async function deletePostAsModerator(postId: number): Promise<boolean> {
-  const row = await getOne<{ id: number; image: string | null; video: string | null }>(
-    'SELECT id, image, video FROM posts WHERE id = ?',
+  const row = await getOne<{ id: number; image: string | null; video: string | null; audio: string | null }>(
+    'SELECT id, image, video, audio FROM posts WHERE id = ?',
     [postId],
   );
   if (!row) return false;
@@ -350,7 +355,7 @@ export async function deletePostAsModerator(postId: number): Promise<boolean> {
   return true;
 }
 
-async function purgePost(row: { id: number; image: string | null; video: string | null }) {
+async function purgePost(row: { id: number; image: string | null; video: string | null; audio: string | null }) {
   const postId = row.id;
   await withTransaction(async (conn) => {
     await conn.execute('DELETE FROM posts WHERE repost_of = ?', [postId]);
@@ -360,7 +365,7 @@ async function purgePost(row: { id: number; image: string | null; video: string 
     await conn.execute('DELETE FROM posts WHERE id = ?', [postId]);
   });
   /* Le média du post part aussi du disque (droit à l'effacement), sauf s'il sert encore ailleurs. */
-  await removeUploadsIfUnreferenced([row.image, row.video]);
+  await removeUploadsIfUnreferenced([row.image, row.video, row.audio]);
 }
 
 export async function toggleLike(uid: string, postId: number) {
@@ -598,7 +603,10 @@ export async function exportUserData(uid: string) {
       'SELECT uid, pseudo, email, displayName, avatar, banner, bio, location, website, verified, emailVerified, totp_enabled, createdAt FROM users WHERE uid = ?',
       [uid],
     ),
-    query<unknown[]>('SELECT id, text, image, video, repost_of, created_at FROM posts WHERE uid = ?', [uid]),
+    query<unknown[]>(
+      'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at FROM posts WHERE uid = ?',
+      [uid],
+    ),
     query<unknown[]>('SELECT id, post_id, text, created_at FROM comments WHERE uid = ?', [uid]),
     query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
     query<unknown[]>(
@@ -631,7 +639,10 @@ export async function exportUserData(uid: string) {
 export async function deleteAccount(uid: string) {
   /* Médias à effacer du disque une fois la transaction validée. */
   const [ownPosts, owner] = await Promise.all([
-    query<{ image: string | null; video: string | null }[]>('SELECT image, video FROM posts WHERE uid = ?', [uid]),
+    query<{ image: string | null; video: string | null; audio: string | null }[]>(
+      'SELECT image, video, audio FROM posts WHERE uid = ?',
+      [uid],
+    ),
     getOne<{ avatar: string | null; banner: string | null }>('SELECT avatar, banner FROM users WHERE uid = ?', [uid]),
   ]);
   await withTransaction(async (conn) => {
@@ -652,5 +663,9 @@ export async function deleteAccount(uid: string) {
     await conn.execute('DELETE FROM posts WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM users WHERE uid = ?', [uid]);
   });
-  await removeUploadsIfUnreferenced([...ownPosts.flatMap((p) => [p.image, p.video]), owner?.avatar, owner?.banner]);
+  await removeUploadsIfUnreferenced([
+    ...ownPosts.flatMap((p) => [p.image, p.video, p.audio]),
+    owner?.avatar,
+    owner?.banner,
+  ]);
 }

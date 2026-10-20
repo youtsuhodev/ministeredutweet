@@ -46,6 +46,7 @@ router.get('/reports', async (req, res) => {
             text: r.post_exists ? r.post_text : r.post_excerpt,
             image: r.post_exists ? r.post_image : null,
             video: r.post_exists ? r.post_video : null,
+            audio: r.post_exists ? r.post_audio : null,
           }
         : null,
       target: r.target_uid

@@ -116,6 +116,7 @@ export async function listReports(status: string, limit: number, offset: number)
       post_text: string | null;
       post_image: string | null;
       post_video: string | null;
+      post_audio: string | null;
       post_exists: number;
       resolution: string | null;
       handled_at: number | null;
@@ -128,7 +129,7 @@ export async function listReports(status: string, limit: number, offset: number)
     }[]
   >(
     `SELECT r.id, r.category, r.reason, r.status, r.created_at, r.post_id, r.post_excerpt,
-            p.text AS post_text, p.image AS post_image, p.video AS post_video, (p.id IS NOT NULL) AS post_exists,
+            p.text AS post_text, p.image AS post_image, p.video AS post_video, p.audio AS post_audio, (p.id IS NOT NULL) AS post_exists,
             r.resolution, r.handled_at, rp.pseudo AS reporter_pseudo,
             tu.uid AS target_uid, tu.pseudo AS target_pseudo, tu.status AS target_status, tu.role AS target_role,
             (SELECT COUNT(*) FROM reports r2 WHERE r2.post_id <=> r.post_id AND r2.status = 'open') AS open_count

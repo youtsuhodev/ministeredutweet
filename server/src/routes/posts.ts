@@ -93,25 +93,32 @@ router.get('/feed', authMiddleware, async (req, res) => {
 
 router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, res) => {
   try {
-    const { text, image, video } = req.body ?? {};
+    const { text, image, video, audio, audioDuration } = req.body ?? {};
     const uid = currentUser(req).uid;
     const cleanText = typeof text === 'string' ? text.trim() : '';
-    if (!cleanText && !image && !video) {
+    if (!cleanText && !image && !video && !audio) {
       return res.status(400).json({ error: 'Le post ne peut pas être vide' });
     }
     if (cleanText.length > 280) {
       return res.status(400).json({ error: 'Le post ne peut pas dépasser 280 caractères' });
     }
-    if ((image && !isSafeUploadPath(image)) || (video && !isSafeUploadPath(video))) {
+    if (
+      (image && !isSafeUploadPath(image)) ||
+      (video && !isSafeUploadPath(video)) ||
+      (audio && !isSafeUploadPath(audio))
+    ) {
       return res.status(400).json({ error: 'Média invalide' });
     }
-    if (image && video) {
+    if ([image, video, audio].filter(Boolean).length > 1) {
       return res.status(400).json({ error: 'Un seul média par post' });
     }
-    if ((image && !uploadExists(image)) || (video && !uploadExists(video))) {
+    if ((image && !uploadExists(image)) || (video && !uploadExists(video)) || (audio && !uploadExists(audio))) {
       return res.status(400).json({ error: 'Média introuvable, renvoie le fichier' });
     }
-    const postId = await createPost(uid, cleanText || null, image || null, video || null);
+    /* Durée du vocal annoncée par le navigateur (les WebM de MediaRecorder n'ont pas de durée lisible). */
+    const duration =
+      audio && Number.isFinite(audioDuration) ? Math.min(Math.max(Math.round(audioDuration), 1), 120) : null;
+    const postId = await createPost(uid, cleanText || null, image || null, video || null, audio || null, duration);
     if (cleanText) await notifyMentions(cleanText, uid, postId);
     res.json({ id: postId });
   } catch (err) {

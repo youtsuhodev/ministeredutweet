@@ -827,8 +827,8 @@ function PrivacyTab() {
 
       <h2 className="font-extrabold text-xl mb-2">Tes données</h2>
       <p className="text-sm text-[var(--text-secondary)] mb-4">
-        Télécharge une copie de tout ce que le Ministère du vide conserve sur toi (profil, posts, commentaires, abonnements,
-        sessions…).
+        Télécharge une copie de tout ce que le Ministère du vide conserve sur toi (profil, posts, commentaires,
+        abonnements, sessions…).
       </p>
       <button type="button" onClick={exportData} disabled={exporting} className={outlineBtn}>
         {exporting ? '…' : 'Exporter mes données'}

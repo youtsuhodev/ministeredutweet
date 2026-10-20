@@ -45,6 +45,8 @@ mac:
         - x64
         - arm64
   icon: public/assets/logo/logo.png
+  extendInfo:
+    NSMicrophoneUsageDescription: Enregistrer des messages vocaux dans tes publications.
   category: public.app-category.social-networking
   artifactName: "${productName}-${version}-mac-${arch}.${ext}"
 

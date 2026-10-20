@@ -1,9 +1,11 @@
-import { Film, Image as ImageIcon, X } from 'lucide-react';
+import { Film, Image as ImageIcon, Mic, Square, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { formatDuration, MAX_VOICE_SECONDS, useVoiceRecorder, voiceSupported } from '../hooks/useVoiceRecorder';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
 import MentionTextarea from './MentionTextarea';
+import VoicePlayer from './VoicePlayer';
 
 interface ComposeBoxProps {
   onPosted?: () => void;
@@ -25,6 +27,8 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
+  const voice = useVoiceRecorder();
+  const canRecord = voiceSupported();
 
   const removeMedia = () => {
     if (mediaPreview) URL.revokeObjectURL(mediaPreview);
@@ -49,13 +53,20 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
       setError('Type de fichier non supporté');
       return;
     }
+    /* un post porte un seul média : une image ou une vidéo remplace le message vocal */
+    if (voice.status === 'recording') voice.cancel();
+    else voice.discard();
     if (mediaPreview) URL.revokeObjectURL(mediaPreview);
     setMediaFile(file);
     setMediaType(isVideo ? 'video' : 'image');
     setMediaPreview(URL.createObjectURL(file));
   };
 
-  const canPost = (text.trim().length > 0 || mediaFile) && text.length <= 280 && !posting;
+  const canPost =
+    (text.trim().length > 0 || mediaFile || voice.recording) &&
+    text.length <= 280 &&
+    !posting &&
+    voice.status !== 'recording';
 
   const handlePost = async () => {
     if (!canPost) return;
@@ -64,6 +75,7 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
     try {
       let image: string | null = null;
       let video: string | null = null;
+      let audio: string | null = null;
       if (mediaFile) {
         const formData = new FormData();
         formData.append('file', mediaFile);
@@ -71,9 +83,22 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
         if (up.type === 'video') video = up.url;
         else image = up.url;
       }
-      await api.post('/posts', { text: text.trim() || null, image, video });
+      if (voice.recording) {
+        const formData = new FormData();
+        formData.append('file', voice.recording.file);
+        const up = await api.upload<{ url: string }>('/upload?kind=audio', formData);
+        audio = up.url;
+      }
+      await api.post('/posts', {
+        text: text.trim() || null,
+        image,
+        video,
+        audio,
+        audioDuration: audio ? voice.recording?.duration : undefined,
+      });
       setText('');
       removeMedia();
+      voice.discard();
       onPosted?.();
     } catch (err) {
       setError(errorMessage(err, 'Impossible de publier, réessaie'));
@@ -98,7 +123,6 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
           value={text}
           onValueChange={setText}
           onKeyDown={handleKeyDown}
-          // biome-ignore lint/a11y/noAutofocus: la fenêtre de rédaction doit être prête à écrire dès son ouverture
           autoFocus={autoFocus}
           aria-label="Écrire un post"
           placeholder={`Quoi de neuf, ${user?.displayName || user?.pseudo || ''} ?`}
@@ -125,9 +149,52 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
           </div>
         )}
 
-        {error && (
+        {voice.status === 'recording' && (
+          <div
+            role="status"
+            className="mt-3 mb-1 flex items-center gap-3 rounded-full border border-[var(--border-color)] bg-[var(--bg-tertiary)] pl-4 pr-1.5 py-1.5"
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--danger)] animate-pulse" aria-hidden="true" />
+            <span className="text-sm tabular-nums text-[var(--text-primary)]">
+              Enregistrement… {formatDuration(voice.elapsed)} / {formatDuration(MAX_VOICE_SECONDS)}
+            </span>
+            <span className="flex-1" />
+            <button
+              type="button"
+              onClick={voice.cancel}
+              className="text-sm text-[var(--text-secondary)] hover:underline"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={voice.stop}
+              className="flex items-center gap-1.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold rounded-full px-4 py-1.5 text-sm transition-colors"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" /> Terminer
+            </button>
+          </div>
+        )}
+
+        {voice.status === 'recorded' && voice.recording && (
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex-1 min-w-0">
+              <VoicePlayer src={voice.recording.url} duration={voice.recording.duration} />
+            </div>
+            <button
+              type="button"
+              onClick={voice.discard}
+              aria-label="Supprimer le message vocal"
+              className="mt-3 p-2 rounded-full hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {(error || voice.error) && (
           <p role="alert" className="text-sm text-[var(--danger)] mb-1">
-            {error}
+            {error || voice.error}
           </p>
         )}
 
@@ -151,6 +218,25 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
             >
               <Film className="w-5 h-5" />
             </button>
+            {canRecord && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (voice.status === 'recording') voice.stop();
+                  else {
+                    removeMedia();
+                    voice.start();
+                  }
+                }}
+                disabled={posting}
+                aria-label={voice.status === 'recording' ? "Terminer l'enregistrement" : 'Enregistrer un message vocal'}
+                className={`p-2 rounded-full hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-50 ${
+                  voice.status === 'recording' ? 'text-[var(--danger)]' : 'text-[var(--accent)]'
+                }`}
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <span

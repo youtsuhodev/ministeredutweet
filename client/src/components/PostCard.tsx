@@ -8,6 +8,7 @@ import Avatar from './Avatar';
 import ReportDialog from './ReportDialog';
 import RichText from './RichText';
 import VerifiedBadge from './VerifiedBadge';
+import VoicePlayer from './VoicePlayer';
 
 export interface PostUser {
   uid: string;
@@ -25,6 +26,8 @@ export interface Post {
   text: string | null;
   image: string | null;
   video: string | null;
+  audio: string | null;
+  audioDuration: number | null;
   createdAt: string;
   feedAt: string;
   likesCount: number;
@@ -145,7 +148,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
 
   const openPost = (e: React.MouseEvent) => {
     if (!linkToPost) return;
-    if ((e.target as HTMLElement).closest('a, button, video, [data-no-open]')) return;
+    if ((e.target as HTMLElement).closest('a, button, video, audio, input, [data-no-open]')) return;
     navigate(`/post/${post.id}`);
   };
 
@@ -271,6 +274,8 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               />
             </div>
           )}
+
+          {post.audio && <VoicePlayer src={post.audio} duration={post.audioDuration} />}
 
           {notice && (
             <p role="status" className="mt-2 text-sm text-[var(--accent)]">

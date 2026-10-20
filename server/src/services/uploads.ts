@@ -27,7 +27,7 @@ export function uploadExists(urlPath: string | null | undefined): boolean {
 
 export interface DetectedMedia {
   ext: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'audio';
 }
 
 /* Brands « ftyp » qui sont des images ou de l'audio, pas des vidéos lisibles. */
@@ -49,6 +49,22 @@ export function sniffMedia(head: Buffer): DetectedMedia | null {
   }
   if (at([0x1a, 0x45, 0xdf, 0xa3])) return { ext: 'webm', type: 'video' };
   if (text(0, 4) === 'OggS') return { ext: 'ogv', type: 'video' };
+  return null;
+}
+
+/* Message vocal (MediaRecorder) : WebM/Matroska (Chrome, Firefox récent), Ogg (Firefox) ou MP4/M4A (Safari).
+   Un WebM ou un MP4 audio ne se distingue pas d'une vidéo par ses premiers octets : c'est l'usage déclaré
+   (?kind=audio) qui décide, le conteneur reste vérifié. */
+export function sniffAudio(head: Buffer): DetectedMedia | null {
+  if (head.length < 12) return null;
+  if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3)
+    return { ext: 'weba', type: 'audio' };
+  if (head.toString('latin1', 0, 4) === 'OggS') return { ext: 'ogg', type: 'audio' };
+  if (head.toString('latin1', 4, 8) === 'ftyp') {
+    const brand = head.toString('latin1', 8, 12);
+    if (NOT_VIDEO_BRANDS.has(brand) && !['M4A ', 'M4B '].includes(brand)) return null; // image HEIC/AVIF
+    return { ext: 'm4a', type: 'audio' };
+  }
   return null;
 }
 
@@ -81,9 +97,12 @@ function loadSharp(): Promise<SharpFactory | null> {
 }
 
 /* À quoi sert l'image : un avatar affiché en 40 px n'a pas besoin de 30 Mo. */
-export type UploadKind = 'post' | 'avatar' | 'banner';
+export type UploadKind = 'post' | 'avatar' | 'banner' | 'audio';
 
-const IMAGE_PROFILES: Record<UploadKind, { size: number; fit: 'inside' | 'cover'; toWebp: boolean }> = {
+const IMAGE_PROFILES: Record<
+  Exclude<UploadKind, 'audio'>,
+  { size: number; fit: 'inside' | 'cover'; toWebp: boolean }
+> = {
   post: { size: 2560, fit: 'inside', toWebp: false },
   avatar: { size: 512, fit: 'cover', toWebp: true },
   banner: { size: 1600, fit: 'inside', toWebp: true },
@@ -91,7 +110,7 @@ const IMAGE_PROFILES: Record<UploadKind, { size: number; fit: 'inside' | 'cover'
 
 /* Réorientation selon l'EXIF, redimensionnement, ré-encodage sans métadonnées (et WebP pour les photos de profil).
    Renvoie le chemin final (l'extension peut changer en .webp), ou null si l'image est illisible/corrompue. */
-async function processImage(path: string, ext: string, kind: UploadKind): Promise<string | null> {
+async function processImage(path: string, ext: string, kind: Exclude<UploadKind, 'audio'>): Promise<string | null> {
   const sharp = await loadSharp();
   if (!sharp) return path;
   const profile = IMAGE_PROFILES[kind];
@@ -117,14 +136,15 @@ async function processImage(path: string, ext: string, kind: UploadKind): Promis
 export async function finalizeUpload(
   filePath: string,
   kind: UploadKind = 'post',
-): Promise<{ filename: string; type: 'image' | 'video' } | null> {
+): Promise<{ filename: string; type: 'image' | 'video' | 'audio' } | null> {
   let detected: DetectedMedia | null = null;
   try {
     const handle = await open(filePath, 'r');
     try {
       const head = Buffer.alloc(32);
       const { bytesRead } = await handle.read(head, 0, 32, 0);
-      detected = sniffMedia(head.subarray(0, bytesRead));
+      const bytes = head.subarray(0, bytesRead);
+      detected = kind === 'audio' ? sniffAudio(bytes) : sniffMedia(bytes);
     } finally {
       await handle.close();
     }
@@ -142,7 +162,7 @@ export async function finalizeUpload(
     finalPath = `${filePath.slice(0, filePath.length - currentExt.length)}${detected.ext}`;
     await rename(filePath, finalPath);
   }
-  if (detected.type === 'image' && ['jpg', 'png', 'webp'].includes(detected.ext)) {
+  if (detected.type === 'image' && kind !== 'audio' && ['jpg', 'png', 'webp'].includes(detected.ext)) {
     const processed = await processImage(finalPath, detected.ext, kind);
     if (!processed) {
       await unlink(finalPath).catch(() => {});
@@ -162,9 +182,9 @@ export async function removeUploadsIfUnreferenced(urlPaths: Array<string | null 
     if (!name || !urlPath) continue;
     try {
       const row = await getOne<{ n: number }>(
-        `SELECT (SELECT COUNT(*) FROM posts WHERE image = ? OR video = ?)
+        `SELECT (SELECT COUNT(*) FROM posts WHERE image = ? OR video = ? OR audio = ?)
               + (SELECT COUNT(*) FROM users WHERE avatar = ? OR banner = ?) AS n`,
-        [urlPath, urlPath, urlPath, urlPath],
+        [urlPath, urlPath, urlPath, urlPath, urlPath],
       );
       if ((row?.n ?? 0) === 0) await unlink(resolve(uploadsDir, name));
     } catch (err) {
@@ -176,21 +196,22 @@ export async function removeUploadsIfUnreferenced(urlPaths: Array<string | null 
 }
 
 /* Fichiers créés par cette application (Date.now()-hex.ext) : les autres ne sont jamais touchés. */
-const OWN_FILE_RE = /^\d{13}-[0-9a-f]{12}\.(?:jpg|png|gif|webp|mp4|webm|ogv|mov)$/;
+const OWN_FILE_RE = /^\d{13}-[0-9a-f]{12}\.(?:jpg|png|gif|webp|mp4|webm|ogv|mov|weba|ogg|m4a)$/;
 
 /* Balayage des fichiers envoyés mais jamais rattachés à un post ou un profil (publication abandonnée,
    échec réseau…). Les fichiers de moins de `minAgeMs` sont épargnés (envoi en cours). */
 export async function sweepOrphanUploads(minAgeMs = 24 * 60 * 60 * 1000): Promise<number> {
   const [posts, users] = await Promise.all([
-    query<{ image: string | null; video: string | null }[]>(
-      'SELECT image, video FROM posts WHERE image IS NOT NULL OR video IS NOT NULL',
+    query<{ image: string | null; video: string | null; audio: string | null }[]>(
+      'SELECT image, video, audio FROM posts WHERE image IS NOT NULL OR video IS NOT NULL OR audio IS NOT NULL',
     ),
     query<{ avatar: string | null; banner: string | null }[]>(
       'SELECT avatar, banner FROM users WHERE avatar IS NOT NULL OR banner IS NOT NULL',
     ),
   ]);
   const referenced = new Set<string>();
-  for (const p of posts) for (const v of [p.image, p.video]) if (uploadFileName(v)) referenced.add(uploadFileName(v)!);
+  for (const p of posts)
+    for (const v of [p.image, p.video, p.audio]) if (uploadFileName(v)) referenced.add(uploadFileName(v)!);
   for (const u of users)
     for (const v of [u.avatar, u.banner]) if (uploadFileName(v)) referenced.add(uploadFileName(v)!);
 

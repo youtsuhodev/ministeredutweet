@@ -127,7 +127,9 @@ export default function NotificationsPage() {
               <div className="flex-1 min-w-0">
                 {isSystem ? (
                   <p className="text-[var(--text-primary)]">
-                    <span className="font-bold">{n.type === 'moderation' ? 'Modération Ministère du vide' : 'Signalement'}</span>
+                    <span className="font-bold">
+                      {n.type === 'moderation' ? 'Modération Ministère du vide' : 'Signalement'}
+                    </span>
                     {' · '}
                     {n.message}
                   </p>
