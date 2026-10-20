@@ -8,6 +8,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:7286',
       '/uploads': 'http://localhost:7286',
+      '/ws': { target: 'http://localhost:7286', ws: true },
     },
   },
   build: {

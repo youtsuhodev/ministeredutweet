@@ -1,17 +1,20 @@
-import { Bell, Feather, Home, LogOut, Search, Settings, ShieldCheck, User } from 'lucide-react';
+import { Bell, Feather, Home, LogOut, Mail, Search, Settings, ShieldCheck, User } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useRealtime } from '../hooks/useRealtime';
 import { useUnread } from '../hooks/useUnread';
 import Avatar from './Avatar';
 
 export default function Sidebar({ onCompose }: { onCompose: () => void }) {
   const { user, logout } = useAuth();
   const unread = useUnread(!!user);
+  const { unreadMessages } = useRealtime();
 
   const navItems = [
     { to: '/', icon: Home, label: 'Accueil' },
     { to: '/explore', icon: Search, label: 'Explorer' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unread },
+    { to: '/messages', icon: Mail, label: 'Messages', badge: unreadMessages },
     { to: `/${user?.pseudo}`, icon: User, label: 'Profil' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
     ...(user?.role === 'moderator' || user?.role === 'admin'

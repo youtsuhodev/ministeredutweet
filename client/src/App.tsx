@@ -2,6 +2,7 @@ import { lazy, type ReactNode, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import MobileNav from './components/MobileNav';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { RealtimeProvider } from './hooks/useRealtime';
 import { ThemeProvider } from './hooks/useTheme';
 import './index.css';
 
@@ -11,6 +12,8 @@ const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const TagPage = lazy(() => import('./pages/TagPage'));
 const PostPage = lazy(() => import('./pages/PostPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const FollowListPage = lazy(() => import('./pages/FollowListPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -69,6 +72,8 @@ function AppRoutes() {
       <Route path="/tag/:tag" element={protectedPage(<TagPage />)} />
       <Route path="/post/:id" element={protectedPage(<PostPage />)} />
       <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />
+      <Route path="/messages" element={protectedPage(<MessagesPage />)} />
+      <Route path="/messages/:id" element={protectedPage(<ChatPage />)} />
       <Route path="/settings" element={protectedPage(<SettingsPage />)} />
       <Route path="/admin" element={protectedPage(<AdminPage />)} />
       <Route path="/:pseudo/followers" element={protectedPage(<FollowListPage kind="followers" />)} />
@@ -84,10 +89,12 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <Suspense fallback={<Loading />}>
-            <AppRoutes />
-            <MobileNav />
-          </Suspense>
+          <RealtimeProvider>
+            <Suspense fallback={<Loading />}>
+              <AppRoutes />
+              <MobileNav />
+            </Suspense>
+          </RealtimeProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

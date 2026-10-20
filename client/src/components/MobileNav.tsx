@@ -1,18 +1,23 @@
-import { Bell, Home, Search, Settings, ShieldCheck, User } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { Bell, Home, Mail, Search, Settings, ShieldCheck, User } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useRealtime } from '../hooks/useRealtime';
 import { useUnread } from '../hooks/useUnread';
 
 /** Barre de navigation basse (mobile, < 768px). Remplace la colonne de gauche, masquée. */
 export default function MobileNav() {
   const { user } = useAuth();
   const unread = useUnread(!!user);
-  if (!user) return null;
+  const { unreadMessages } = useRealtime();
+  const { pathname } = useLocation();
+  /* Dans une conversation, la zone de saisie occupe le bas de l'écran (comme les messageries mobiles). */
+  if (!user || /^\/messages\/\d+/.test(pathname)) return null;
 
   const items = [
     { to: '/', icon: Home, label: 'Accueil', badge: 0 },
     { to: '/explore', icon: Search, label: 'Explorer', badge: 0 },
     { to: '/notifications', icon: Bell, label: 'Notifs', badge: unread },
+    { to: '/messages', icon: Mail, label: 'Messages', badge: unreadMessages },
     { to: `/${user.pseudo}`, icon: User, label: 'Profil', badge: 0 },
     { to: '/settings', icon: Settings, label: 'Réglages', badge: 0 },
     ...(user.role === 'moderator' || user.role === 'admin'

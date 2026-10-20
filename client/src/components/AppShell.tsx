@@ -12,10 +12,12 @@ interface AppShellProps {
   children: ReactNode;
   /* Appelé après un post publié depuis la fenêtre de rédaction (pour rafraîchir la page). */
   onPosted?: () => void;
+  /* Page de conversation : pleine hauteur, sans barre de navigation basse ni bouton flottant. */
+  chat?: boolean;
 }
 
 /** Mise en page commune : colonne de gauche, colonne centrale, colonne de droite, rédaction. */
-export default function AppShell({ children, onPosted }: AppShellProps) {
+export default function AppShell({ children, onPosted, chat = false }: AppShellProps) {
   const { user } = useAuth();
   const [showCompose, setShowCompose] = useState(false);
   const [resent, setResent] = useState<'idle' | 'sent' | 'error'>('idle');
@@ -36,7 +38,7 @@ export default function AppShell({ children, onPosted }: AppShellProps) {
   };
 
   return (
-    <div className="flex min-h-screen justify-center pb-16 md:pb-0">
+    <div className={`flex min-h-screen justify-center ${chat ? '' : 'pb-16'} md:pb-0`}>
       <Sidebar onCompose={() => setShowCompose(true)} />
 
       <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
@@ -70,6 +72,7 @@ export default function AppShell({ children, onPosted }: AppShellProps) {
 
       <RightSidebar />
 
+      {!chat && (
       <button
         type="button"
         onClick={() => setShowCompose(true)}
@@ -78,6 +81,7 @@ export default function AppShell({ children, onPosted }: AppShellProps) {
       >
         <Feather className="w-6 h-6" />
       </button>
+      )}
 
       {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => onPosted?.()} />}
     </div>

@@ -14,13 +14,17 @@ export const REPORT_CATEGORIES = [
 ] as const;
 
 interface ReportDialogProps {
-  postId: number;
+  /* Signalement d'un post (par défaut) ou, avec `endpoint`, d'un autre contenu (ex. message privé). */
+  postId?: number;
+  endpoint?: string;
+  /* « ce post », « ce message »… */
+  subject?: string;
   onClose: () => void;
   onDone: () => void;
 }
 
 /** Fenêtre de signalement d'un post : catégorie obligatoire, précisions facultatives. */
-export default function ReportDialog({ postId, onClose, onDone }: ReportDialogProps) {
+export default function ReportDialog({ postId, endpoint, subject = 'ce post', onClose, onDone }: ReportDialogProps) {
   const [category, setCategory] = useState<string>('');
   const [details, setDetails] = useState('');
   const [sending, setSending] = useState(false);
@@ -41,7 +45,7 @@ export default function ReportDialog({ postId, onClose, onDone }: ReportDialogPr
     setSending(true);
     setError('');
     try {
-      await api.post(`/posts/${postId}/report`, { category, reason: details.trim() || undefined });
+      await api.post(endpoint ?? `/posts/${postId}/report`, { category, reason: details.trim() || undefined });
       onDone();
     } catch (err) {
       setError(errorMessage(err, 'Signalement impossible'));
@@ -62,13 +66,13 @@ export default function ReportDialog({ postId, onClose, onDone }: ReportDialogPr
       <form
         role="dialog"
         aria-modal="true"
-        aria-label="Signaler ce post"
+        aria-label={`Signaler ${subject}`}
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
         className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-[480px] mx-4 shadow-xl border border-[var(--border-color)]"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
-          <h2 className="font-extrabold text-lg">Signaler ce post</h2>
+          <h2 className="font-extrabold text-lg">Signaler {subject}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -80,7 +84,7 @@ export default function ReportDialog({ postId, onClose, onDone }: ReportDialogPr
         </div>
         <div className="p-4 space-y-3">
           <fieldset className="space-y-1">
-            <legend className="text-sm text-[var(--text-secondary)] mb-2">Pourquoi signales-tu ce post ?</legend>
+            <legend className="text-sm text-[var(--text-secondary)] mb-2">Pourquoi signales-tu {subject} ?</legend>
             {REPORT_CATEGORIES.map((c) => (
               <label
                 key={c.id}
