@@ -1,5 +1,6 @@
 [21/10/2026]
 - NOUVEAU : messages vocaux dans les publications (bouton micro dans l'éditeur, 2 min max, écoute avant de publier, lecteur dans le fil) ; fichiers audio WebM/Ogg/MP4 contrôlés sur leur contenu réel (4 Mo max), supprimés du disque avec le post ; migration `010_voice_posts.sql` (colonnes `audio` et `audio_duration`)
+- SÉCURITÉ / PWA : politique « aucun cache » — `Cache-Control: no-store` sur toutes les réponses du serveur (pages, bundles, API, uploads), sans ETag ni Last-Modified ; le service worker ne met plus rien en cache (il purge les anciens caches, sert une page hors-ligne générée à la volée et reste présent pour l'installation de la PWA) ; requêtes de l'API en `cache: 'no-store'`, cache HTTP désactivé dans l'appli Electron ; `offline.html` et `offline.js` supprimés
 - NOUVEAU : modification de ses posts (menu « … » → Modifier, édition en place, Ctrl+Entrée pour enregistrer, mention « modifié » avec la date en infobulle) ; les @mentions ajoutées à la modification sont notifiées, pas celles déjà présentes ; migration `011_post_edit.sql` (colonne `edited_at`)
 - NOUVEAU : autocomplétion des @mentions dans les publications et les réponses
 

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { getOne, query, withTransaction } from '../config/database.js';
 import { hashSessionId, sha256Hex } from '../utils/crypto.js';
 import { countHashtags, type HashtagTrend } from '../utils/hashtags.js';
+import { pushForNotification } from './push.js';
 import { decryptSecret, encryptSecret, isSecretEncryptionEnabled } from './secrets.js';
 import { removeUploadsIfUnreferenced } from './uploads.js';
 
@@ -503,6 +504,8 @@ export async function createNotification(uid: string, type: string, actorUid: st
     actorUid,
     postId ?? null,
   ]);
+  /* Push sur les appareils abonnés (sans attendre : un échec push ne bloque jamais l'action). */
+  void pushForNotification(uid, type, { actorUid, postId });
 }
 
 /* Notification émise par la plateforme (modération) : pas d'acteur, un message libre. */
@@ -513,6 +516,7 @@ export async function createSystemNotification(uid: string, type: string, messag
     postId ?? null,
     message.slice(0, 500),
   ]);
+  void pushForNotification(uid, type, { postId, message });
 }
 
 const MENTION_RE = /(?:^|[^\w])@([a-zA-Z0-9_]{3,30})/g;
@@ -691,6 +695,7 @@ export async function deleteAccount(uid: string) {
     await conn.execute('DELETE FROM auth_tokens WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
+    await conn.execute('DELETE FROM push_subscriptions WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM posts WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM users WHERE uid = ?', [uid]);
   });

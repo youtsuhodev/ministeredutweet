@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { logout as apiLogout, type CurrentUser, getMe } from '../services/auth';
+import { detachPushOnLogout } from './usePush';
 
 interface AuthContextType {
   user: CurrentUser | null;
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      await detachPushOnLogout();
       await apiLogout();
     } catch {
       /* même hors-ligne, on referme la session côté client */

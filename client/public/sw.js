@@ -1,97 +1,120 @@
-const VERSION = 'ministere-v4';
-const OFFLINE_URL = '/offline.html';
-const CORE_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  OFFLINE_URL,
-  '/offline.js',
-  '/assets/pwa/icon-192.png',
-];
+/* Service worker SANS cache (politique « aucun cache »).
+   Il ne stocke rien : ni Cache Storage, ni réponses réseau. Il reste présent pour que le navigateur propose
+   l'installation de la PWA, et pour afficher une page « hors ligne » générée à la volée quand le réseau tombe. */
 
-/* Cache les ressources du shell de l'app à l'installation */
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
-  event.waitUntil(
-    caches
-      .open(VERSION)
-      .then((cache) => cache.addAll(CORE_ASSETS))
-      .catch(() => {
-        /* installe même si le préchargement échoue — le cache runtime prendra le relais */
-      }),
-  );
 });
 
-/* Nettoie les anciennes versions du cache */
+/* Supprime tout ce qu'une ancienne version (wouaff-v*, ministere-v*) aurait mis en cache. */
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key)));
+      await Promise.all(keys.map((key) => caches.delete(key)));
       await self.clients.claim();
     })(),
   );
 });
 
-const isNavigation = (req) => req.mode === 'navigate';
-/* Jamais interceptés : l'API, et les médias envoyés par les utilisateurs (/uploads) — les garder en cache
-   ferait grossir le cache sans limite et conserverait sur l'appareil des médias supprimés depuis. */
-const isBypassed = (url) => url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/');
-const isStatic = (url) =>
-  url.pathname.startsWith('/assets/') ||
-  /\.(css|js|png|jpe?g|gif|svg|webp|woff2?|ico|json|webmanifest)$/.test(url.pathname);
-/* Fichiers du build dont le nom contient un hash (index-AbCd1234.js) : leur contenu ne change jamais. */
-const isHashed = (url) => /\/assets\/.+-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/.test(url.pathname);
+const OFFLINE_HTML = `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#020617" />
+  <title>Hors ligne — Ministère du vide</title>
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body { display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; box-sizing: border-box;
+      background: #020617; color: #e2e8f0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    main { max-width: 380px; }
+    h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    p { color: #94a3b8; line-height: 1.5; margin: 0 0 24px; }
+    button { background: #00a2f5; color: #fff; border: 0; border-radius: 999px; padding: 12px 28px; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    @media (prefers-color-scheme: light) { body { background: #eef2f7; color: #0f172a; } p { color: #475569; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tu es hors ligne</h1>
+    <p>Le Ministère du vide a besoin d'une connexion pour charger ton fil. Vérifie ton réseau puis réessaie.</p>
+    <button type="button" onclick="location.reload()">Réessayer</button>
+  </main>
+  <script>addEventListener('online', function () { location.reload(); });</script>
+</body>
+</html>`;
 
-/* Stratégies : navigation network-first (fallback offline), fichiers hachés cache-first,
-   autres fichiers statiques network-first (sinon logo ou theme.js modifiés restaient périmés). */
+/* Seules les navigations sont gérées : toujours depuis le réseau (cache: 'no-store'), et si le réseau
+   est coupé, la page hors-ligne ci-dessus. Tout le reste (scripts, images, API…) passe directement par le navigateur. */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin || isBypassed(url)) return;
+  if (req.mode !== 'navigate' || req.method !== 'GET') return;
+  event.respondWith(
+    fetch(req, { cache: 'no-store' }).catch(
+      () =>
+        new Response(OFFLINE_HTML, {
+          status: 503,
+          headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+        }),
+    ),
+  );
+});
 
-  if (isNavigation(req)) {
-    event.respondWith(
-      (async () => {
-        try {
-          const fresh = await fetch(req);
-          /* Une réponse d'erreur (502 du proxy…) ne doit jamais remplacer la page de secours. */
-          if (fresh.ok) {
-            const cache = await caches.open(VERSION);
-            cache.put('/index.html', fresh.clone());
-          }
-          return fresh;
-        } catch {
-          const cached = await caches.match('/index.html');
-          if (cached) return cached;
-          const home = await caches.match('/');
-          if (home) return home;
-          return (await caches.match(OFFLINE_URL)) || Response.error();
-        }
-      })(),
-    );
-    return;
+/* Réception d'une notification push (Web Push). Sur iOS, chaque push DOIT afficher une notification,
+   sinon Safari révoque l'abonnement : on n'ignore donc jamais un message, même appli au premier plan. */
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
   }
+  const title = typeof data.title === 'string' && data.title ? data.title : 'Ministère du vide';
+  const options = {
+    body: typeof data.body === 'string' ? data.body : '',
+    icon: '/assets/pwa/icon-192.png',
+    badge: '/assets/pwa/icon-192.png',
+    tag: typeof data.tag === 'string' ? data.tag : undefined,
+    data: { url: typeof data.url === 'string' ? data.url : '/' },
+  };
+  event.waitUntil(
+    (async () => {
+      await self.registration.showNotification(title, options);
+      /* Pastille sur l'icône de l'appli installée (Chrome/Edge bureau, Android, iOS 16.4+). */
+      if (typeof data.unread === 'number' && 'setAppBadge' in self.navigator) {
+        try {
+          await (data.unread > 0 ? self.navigator.setAppBadge(data.unread) : self.navigator.clearAppBadge());
+        } catch {
+          /* badge non supporté : sans importance */
+        }
+      }
+    })(),
+  );
+});
 
-  if (isStatic(url)) {
-    event.respondWith(
-      (async () => {
-        const cached = await caches.match(req);
-        if (cached && isHashed(url)) return cached;
-        try {
-          const fresh = await fetch(req);
-          if (fresh.ok) {
-            const cache = await caches.open(VERSION);
-            cache.put(req, fresh.clone());
-          }
-          return fresh;
-        } catch {
-          return cached || Response.error();
-        }
-      })(),
-    );
-  }
+/* Le navigateur a renouvelé ou invalidé l'abonnement : on se réabonne avec la même clé serveur. */
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const key = event.oldSubscription && event.oldSubscription.options.applicationServerKey;
+        if (!key) return;
+        const sub = await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sub.toJSON()),
+        });
+      } catch {
+        /* le prochain lancement de l'appli resynchronisera l'abonnement */
+      }
+    })(),
+  );
 });
 
 /* Clic sur une notification système */

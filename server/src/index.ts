@@ -8,6 +8,7 @@ import express from 'express';
 import pool from './config/database.js';
 import { runMigrations } from './config/migrate.js';
 import { errorHandler, setupProcessHandlers } from './middleware/errorHandler.js';
+import { noCache } from './middleware/noCache.js';
 import { originCheck } from './middleware/originCheck.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { securityHeaders } from './middleware/security.js';
@@ -17,6 +18,7 @@ import captchaRoutes from './routes/captcha.js';
 import notificationsRoutes from './routes/notifications.js';
 import postsRoutes from './routes/posts.js';
 import profilesRoutes from './routes/profiles.js';
+import pushRoutes from './routes/push.js';
 import socialRoutes from './routes/social.js';
 import trendsRoutes from './routes/trends.js';
 import uploadRoutes from './routes/upload.js';
@@ -71,6 +73,9 @@ if (!trustProxy) {
   });
 }
 
+/* Politique « aucun cache » sur absolument toutes les réponses (voir middleware/noCache.ts). */
+app.set('etag', false);
+app.use(noCache);
 app.use(securityHeaders(isProd));
 app.use(compression());
 app.use(cors({ origin: appOrigin, credentials: true }));
@@ -109,12 +114,13 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/profiles', profilesRoutes);
 app.use('/api', socialRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/trends', trendsRoutes);
 app.use('/api/upload', uploadRoutes);
 
 /* Uploads : même dossier que celui où écrit /api/upload. Un fichier d'upload ne doit jamais
    être interprété comme une page (nosniff + CSP vide), même si un type MIME était usurpé.
-   Les noms sont uniques et le contenu ne change jamais : cache long et « immutable ». */
+   Politique « aucun cache » : ni Cache-Control, ni ETag, ni Last-Modified propres à ce dossier. */
 app.use(
   '/uploads',
   (_req, res, next) => {
@@ -123,17 +129,12 @@ app.use(
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
     next();
   },
-  express.static(uploadsDir, { maxAge: '30d', immutable: true, index: false, dotfiles: 'deny' }),
+  express.static(uploadsDir, { cacheControl: false, etag: false, lastModified: false, index: false, dotfiles: 'deny' }),
   (_req, res) => res.status(404).end(),
 );
 
 /* Une route /api inconnue répond en JSON, pas avec le fallback HTML de la SPA. */
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route introuvable' }));
-
-/* Fichiers du build : les bundles hachés (/assets/index-AbCd1234.js) ne changent jamais → cache d'un an ;
-   la page d'entrée, le service worker et le manifeste doivent toujours être revalidés. */
-const HASHED_ASSET_RE = /[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/;
-const ALWAYS_REVALIDATE_RE = /(?:index\.html|sw\.js|theme\.js|offline\.(?:html|js)|manifest\.webmanifest)$/;
 
 async function start() {
   try {
@@ -147,19 +148,10 @@ async function start() {
     if (encrypted > 0) console.log(`[SECRETS] ${encrypted} secret(s) TOTP chiffré(s)`);
 
     if (isProd) {
-      app.use(
-        express.static(distPath, {
-          setHeaders(res, filePath) {
-            if (ALWAYS_REVALIDATE_RE.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
-            else if (HASHED_ASSET_RE.test(filePath))
-              res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-            else res.setHeader('Cache-Control', 'public, max-age=3600');
-          },
-        }),
-      );
+      /* Fichiers du build servis sans cache : l'en-tête vient de noCache, express.static n'en ajoute pas. */
+      app.use(express.static(distPath, { cacheControl: false, etag: false, lastModified: false }));
       app.get('*', (_req, res) => {
-        res.setHeader('Cache-Control', 'no-cache');
-        res.sendFile(resolve(distPath, 'index.html'));
+        res.sendFile(resolve(distPath, 'index.html'), { cacheControl: false, etag: false, lastModified: false });
       });
     } else {
       const { createServer } = await import('vite');

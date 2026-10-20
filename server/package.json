@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "start:prod": "npm run build:all && node dist/index.js",
     "role": "node dist/scripts/setRole.js",
+    "vapid": "node -e \"const w=require('web-push').generateVAPIDKeys();console.log('VAPID_PUBLIC_KEY='+w.publicKey);console.log('VAPID_PRIVATE_KEY='+w.privateKey)\"",
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
@@ -25,7 +26,8 @@
     "mysql2": "^3.22.4",
     "nodemailer": "^10.1.7",
     "sharp": "^0.35.5",
-    "uuid": "^14.0.2"
+    "uuid": "^14.0.2",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
@@ -35,6 +37,7 @@
     "@types/node": "^22.9.0",
     "@types/nodemailer": "^8.0.1",
     "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.1.1",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",

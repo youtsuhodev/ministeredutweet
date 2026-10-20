@@ -7,6 +7,9 @@ const isDev = process.env.NODE_ENV === 'development';
 const APP_URL = (process.env.WOUAFF_URL || 'https://wouaff.app').replace(/\/$/, '');
 const DEV_URL = process.env.VITE_DEV_URL || 'http://localhost:5173';
 
+/* Politique « aucun cache » : l'appli ne conserve aucune réponse HTTP sur disque ni en mémoire. */
+app.commandLine.appendSwitch('disable-http-cache');
+
 let mainWindow = null;
 let splashWindow = null;
 let discordClient = null;

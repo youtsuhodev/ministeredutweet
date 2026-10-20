@@ -1,6 +1,8 @@
 import { Feather } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useNotificationAlerts } from '../hooks/useNotificationAlerts';
+import { syncPushSubscription } from '../hooks/usePush';
 import { api } from '../services/api';
 import ComposeModal from './ComposeModal';
 import RightSidebar from './RightSidebar';
@@ -17,6 +19,12 @@ export default function AppShell({ children, onPosted }: AppShellProps) {
   const { user } = useAuth();
   const [showCompose, setShowCompose] = useState(false);
   const [resent, setResent] = useState<'idle' | 'sent' | 'error'>('idle');
+
+  /* Push : rattache l'appareil au compte connecté ; Electron : notifications locales. */
+  useNotificationAlerts(!!user);
+  useEffect(() => {
+    if (user) void syncPushSubscription(user.uid);
+  }, [user]);
 
   const resend = async () => {
     try {

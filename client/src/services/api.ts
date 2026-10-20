@@ -15,6 +15,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const isForm = options.body instanceof FormData;
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
+    cache: 'no-store',
     ...options,
     headers: isForm
       ? { ...(options.headers as Record<string, string>) }

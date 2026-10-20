@@ -7,6 +7,7 @@ import Avatar from '../components/Avatar';
 import { inputClass, outlineBtn, primaryBtn } from '../components/formStyles';
 import { EmailForm, PseudoForm } from '../components/IdentityForms';
 import PageHeader from '../components/PageHeader';
+import PushSettings from '../components/PushSettings';
 import RecoveryCodes from '../components/RecoveryCodes';
 import { useAuth } from '../hooks/useAuth';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
@@ -19,7 +20,7 @@ const SETTINGS_TABS = [
   { id: 'account', label: 'Ton compte', icon: User, description: 'Identifiants, mot de passe, e-mail.' },
   { id: 'profile', label: 'Profil', icon: UserCog, description: 'Photo, bannière, bio, liens.' },
   { id: 'security', label: 'Sécurité', icon: Shield, description: 'Double authentification, sessions.' },
-  { id: 'display', label: 'Affichage', icon: Palette, description: 'Thème clair, sombre ou auto, installation.' },
+  { id: 'display', label: 'Affichage', icon: Palette, description: 'Thème, installation, notifications.' },
   { id: 'privacy', label: 'Confidentialité', icon: ShieldAlert, description: 'Blocages, export, suppression.' },
 ] as const;
 
@@ -727,6 +728,7 @@ function DisplayTab() {
         ))}
       </div>
       <InstallApp />
+      <PushSettings />
     </div>
   );
 }
