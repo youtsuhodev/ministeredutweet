@@ -107,7 +107,7 @@ function organization(origin: string) {
     '@id': `${origin}/#organization`,
     name: SITE_NAME,
     url: `${origin}/`,
-    logo: `${origin}/assets/pwa/icon-512.png`,
+    logo: `${origin}/assets/logo/logo.png`,
     email: CONTACT_EMAIL,
     description: SITE_DESCRIPTION,
     sameAs: [REPO_URL],
@@ -218,7 +218,9 @@ export function renderPage(page: SeoPage, origin: string): string {
       author: { '@id': `${origin}/#organization` },
       publisher: { '@id': `${origin}/#organization` },
       isPartOf: { '@id': `${origin}/#website` },
-      ...(page.sources?.length ? { citation: page.sources.map((s) => ({ '@type': 'WebPage', name: s.label, url: s.url })) } : {}),
+      ...(page.sources?.length
+        ? { citation: page.sources.map((s) => ({ '@type': 'WebPage', name: s.label, url: s.url })) }
+        : {}),
     },
     {
       '@type': 'BreadcrumbList',
@@ -247,7 +249,10 @@ export function renderPage(page: SeoPage, origin: string): string {
   const related = page.related
     .map((p) => PAGE_BY_PATH.get(p))
     .filter((p): p is SeoPage => Boolean(p))
-    .map((p) => `<li><a href="${p.path}"><strong>${esc(p.breadcrumb)}</strong><br /><span class="src">${esc(p.description)}</span></a></li>`)
+    .map(
+      (p) =>
+        `<li><a href="${p.path}"><strong>${esc(p.breadcrumb)}</strong><br /><span class="src">${esc(p.description)}</span></a></li>`,
+    )
     .join('');
 
   return `<!doctype html>
@@ -258,15 +263,15 @@ export function renderPage(page: SeoPage, origin: string): string {
   <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#eef2f7" media="(prefers-color-scheme: light)" />
   ${head}
-  <link rel="icon" href="/assets/logo/icon.ico" />
-  <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon-180.png" />
+  <link rel="icon" href="/assets/logo/logo.png" />
+  <link rel="apple-touch-icon" href="/assets/logo/logo.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <style>${CSS}</style>
 </head>
 <body>
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="top"><div class="top-in">
-  <a class="brand" href="/"><img src="/assets/pwa/icon-192.png" width="32" height="32" alt="" /><span>${esc(SITE_NAME)}</span></a>
+  <a class="brand" href="/"><img src="/assets/logo/logo.png" width="32" height="32" alt="" /><span>${esc(SITE_NAME)}</span></a>
   <nav class="nav" aria-label="Navigation principale">
     <a href="/mobilisations-en-france">Mobilisations</a>
     <a href="/espace-presse">Presse</a>
@@ -276,7 +281,11 @@ export function renderPage(page: SeoPage, origin: string): string {
 <main id="contenu">
 <article>
   <nav class="crumbs" aria-label="Fil d’Ariane">${crumbs
-    .map((c, i) => (i === crumbs.length - 1 ? `<span aria-current="page">${esc(c.name)}</span>` : `<a href="${c.path}">${esc(c.name)}</a>`))
+    .map((c, i) =>
+      i === crumbs.length - 1
+        ? `<span aria-current="page">${esc(c.name)}</span>`
+        : `<a href="${c.path}">${esc(c.name)}</a>`,
+    )
     .join(' › ')}</nav>
   <header>
     <span class="kicker">${esc(page.kicker)}</span>
@@ -340,7 +349,12 @@ export function shellMeta(pathname: string, origin: string): ShellMeta {
         title: homeTitle,
         description: SITE_DESCRIPTION,
         robots: ROBOTS_INDEX,
-        jsonLd: [{ '@context': 'https://schema.org', '@graph': [organization(origin), website(origin), webApplication(origin)] }],
+        jsonLd: [
+          {
+            '@context': 'https://schema.org',
+            '@graph': [organization(origin), website(origin), webApplication(origin)],
+          },
+        ],
       }),
     };
   }

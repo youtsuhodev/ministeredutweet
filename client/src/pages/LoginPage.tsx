@@ -209,6 +209,17 @@ export default function LoginPage() {
           </button>
         </p>
 
+        {/* Liens simples (pas de <Link>) : ces pages sont rendues par le serveur, hors du routeur de l'appli. */}
+        <nav aria-label="Mobilisations" className="mt-8 text-center text-sm text-[var(--text-secondary)]">
+          <p className="mb-2 font-bold">Mobilisations en France</p>
+          <p className="space-x-3">
+            <a href="/mobilisation-lyceenne">Lycéens</a>
+            <a href="/gilets-jaunes">Gilets jaunes</a>
+            <a href="/17-octobre">17 octobre</a>
+            <a href="/24-octobre">24 octobre</a>
+          </p>
+        </nav>
+
         <div className="mt-8 text-center text-xs text-[var(--text-secondary)]">
           © 2026 Ministère du vide. Pas de revente de données. Pas de pub.
         </div>

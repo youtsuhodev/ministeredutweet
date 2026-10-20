@@ -5,24 +5,22 @@ import { Router } from 'express';
 import { PAGES } from '../seo/content.js';
 import { injectShell, renderPage, robotsTxt, shellMeta, sitemapXml } from '../seo/render.js';
 
-const PUBLIC_CACHE = 'public, max-age=600';
-
 /* robots.txt, sitemap.xml et pages de contenu référencées, rendues côté serveur (HTML complet, sans JS).
-   À monter avant le fallback de la SPA. */
+   À monter avant le fallback de la SPA. Le middleware noCache (index.ts) s'applique : on ne pose pas de Cache-Control ici. */
 export function seoRouter(origin: string): Router {
   const router = Router();
 
   router.get('/robots.txt', (_req, res) => {
-    res.type('text/plain; charset=utf-8').set('Cache-Control', PUBLIC_CACHE).send(robotsTxt(origin));
+    res.type('text/plain; charset=utf-8').send(robotsTxt(origin));
   });
 
   router.get('/sitemap.xml', (_req, res) => {
-    res.type('application/xml; charset=utf-8').set('Cache-Control', PUBLIC_CACHE).send(sitemapXml(origin));
+    res.type('application/xml; charset=utf-8').send(sitemapXml(origin));
   });
 
   for (const page of PAGES) {
     router.get(page.path, (_req, res) => {
-      res.type('text/html; charset=utf-8').set('Cache-Control', PUBLIC_CACHE).send(renderPage(page, origin));
+      res.type('text/html; charset=utf-8').send(renderPage(page, origin));
     });
   }
 
@@ -38,7 +36,6 @@ export function spaFallback(distPath: string, origin: string): RequestHandler {
       template ??= readFileSync(resolve(distPath, 'index.html'), 'utf8');
       const meta = shellMeta(req.path, origin);
       if (meta.noindex) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-      res.setHeader('Cache-Control', 'no-cache');
       res.type('text/html; charset=utf-8').send(injectShell(template, meta));
     } catch (err) {
       next(err);

@@ -19,6 +19,7 @@ import notificationsRoutes from './routes/notifications.js';
 import postsRoutes from './routes/posts.js';
 import profilesRoutes from './routes/profiles.js';
 import pushRoutes from './routes/push.js';
+import { seoRouter, spaFallback } from './routes/seo.js';
 import socialRoutes from './routes/social.js';
 import trendsRoutes from './routes/trends.js';
 import uploadRoutes from './routes/upload.js';
@@ -136,6 +137,10 @@ app.use(
 /* Une route /api inconnue répond en JSON, pas avec le fallback HTML de la SPA. */
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Route introuvable' }));
 
+/* SEO : robots.txt, sitemap.xml et pages de contenu publiques (mobilisations, presse), rendues côté serveur.
+   À monter avant le fallback de la SPA, sinon /gilets-jaunes serait avalé par la route /:pseudo du client. */
+app.use(seoRouter(appOrigin));
+
 async function start() {
   try {
     assertSecretsConfig();
@@ -149,10 +154,9 @@ async function start() {
 
     if (isProd) {
       /* Fichiers du build servis sans cache : l'en-tête vient de noCache, express.static n'en ajoute pas. */
-      app.use(express.static(distPath, { cacheControl: false, etag: false, lastModified: false }));
-      app.get('*', (_req, res) => {
-        res.sendFile(resolve(distPath, 'index.html'), { cacheControl: false, etag: false, lastModified: false });
-      });
+      /* index: false → « / » passe par spaFallback, qui injecte les balises SEO (titre, canonical, Open Graph, JSON-LD). */
+      app.use(express.static(distPath, { cacheControl: false, etag: false, lastModified: false, index: false }));
+      app.get('*', spaFallback(distPath, appOrigin));
     } else {
       const { createServer } = await import('vite');
       const vite = await createServer({

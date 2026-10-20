@@ -6,17 +6,24 @@ Le Ministère du vide est un réseau social français open source, sans publicit
 
 Le Ministère du vide propose des posts (texte, images, vidéos), des réponses, des reposts, des abonnements, des notifications et une recherche. Le code source est disponible sur GitHub.
 
-- Site : https://wouaff.app
+- Site : https://tweet.ministereduvide.fr
 - Code source : https://github.com/Wouaff/WouaffApp
 - Contact : contact@wouaff.app
 
 ## Pages principales
 
-- [Accueil](https://wouaff.app/)
-- [Explorer](https://wouaff.app/explore)
-- [Authentification](https://wouaff.app/auth)
-- [Conditions](https://wouaff.app/legal/conditions)
-- [Confidentialité](https://wouaff.app/legal/confidentialite)
+- [Accueil](https://tweet.ministereduvide.fr/)
+- [Explorer](https://tweet.ministereduvide.fr/explore)
+- [Authentification](https://tweet.ministereduvide.fr/auth)
+- [Mobilisations en France : lycéens, gilets jaunes, 17 et 24 octobre](https://tweet.ministereduvide.fr/mobilisations-en-france)
+- [Mobilisation lycéenne 2026](https://tweet.ministereduvide.fr/mobilisation-lyceenne)
+- [Gilets jaunes 2026](https://tweet.ministereduvide.fr/gilets-jaunes)
+- [Manifestation du 17 octobre 2026](https://tweet.ministereduvide.fr/17-octobre)
+- [Mobilisation du 24 octobre 2026](https://tweet.ministereduvide.fr/24-octobre)
+- [Espace presse](https://tweet.ministereduvide.fr/espace-presse)
+- [Plan du site](https://tweet.ministereduvide.fr/sitemap.xml)
+- [Conditions](https://tweet.ministereduvide.fr/legal/conditions)
+- [Confidentialité](https://tweet.ministereduvide.fr/legal/confidentialite)
 
 ## API
 

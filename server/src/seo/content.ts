@@ -76,11 +76,13 @@ const SRC = {
     url: 'https://www.ici.fr/infos/societe/la-coordination-des-gilets-jaunes-du-17-octobre-annonce-un-acte-ii-pour-samedi-24-octobre-7782520',
   },
   ici24Toulouse: {
-    label: 'ICI Occitanie — Un acte II de la mobilisation contre la vie chère est annoncé à Toulouse pour le samedi 24 octobre',
+    label:
+      'ICI Occitanie — Un acte II de la mobilisation contre la vie chère est annoncé à Toulouse pour le samedi 24 octobre',
     url: 'https://www.ici.fr/occitanie/haute-garonne-31/toulouse/un-acte-ii-de-la-mobilisation-contre-la-vie-chere-est-annonce-a-toulouse-pour-le-samedi-24-octobre-1211002',
   },
   cnews20: {
-    label: 'CNews — Lycéens, gilets jaunes, syndicats : après le 17 octobre, de nouvelles journées sous tension (20 octobre 2026)',
+    label:
+      'CNews — Lycéens, gilets jaunes, syndicats : après le 17 octobre, de nouvelles journées sous tension (20 octobre 2026)',
     url: 'https://www.cnews.fr/france/2026-10-20/lyceens-gilets-jaunes-syndicats-apres-le-17-octobre-ces-nouvelles-journees-sous',
   },
   macommune13: {
@@ -325,7 +327,9 @@ export const PAGES: SeoPage[] = [
           'Paris : 110 000 manifestants selon les autorités.',
           'Lyon et Nantes : 20 000 chacune. Strasbourg : 15 000. Rennes : 12 000. La Rochelle : 7 000 (autorités).',
         ],
-        paras: ['Source : AFP, via Sud Radio. Les écarts entre chiffres officiels et chiffres des organisateurs sont habituels : ils reposent sur des méthodes de comptage différentes.'],
+        paras: [
+          'Source : AFP, via Sud Radio. Les écarts entre chiffres officiels et chiffres des organisateurs sont habituels : ils reposent sur des méthodes de comptage différentes.',
+        ],
       },
       {
         h2: 'Violences et bilan officiel',
