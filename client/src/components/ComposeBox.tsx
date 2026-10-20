@@ -202,18 +202,29 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
           </p>
         )}
 
-        <label className="flex items-start gap-2 pt-2 text-sm text-[var(--text-secondary)] cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="mt-0.5 accent-[var(--accent)]"
-          />
-          <span>
-            <Globe className="inline w-3.5 h-3.5 mr-1 -mt-0.5" aria-hidden="true" />
-            Rendre ce post public : visible sans connexion et référencé sur Google. Réservé aux 18 ans et plus.
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isPublic}
+          onClick={() => setIsPublic((v) => !v)}
+          title="Visible sans connexion et référencé sur Google. Réservé aux 18 ans et plus."
+          className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            isPublic
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+              : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+          }`}
+        >
+          <Globe className="w-4 h-4" aria-hidden="true" />
+          Rendre ce post public
+          <span
+            aria-hidden="true"
+            className={`relative inline-block h-4 w-7 rounded-full transition-colors ${isPublic ? 'bg-[var(--accent)]' : 'bg-[var(--border-color)]'}`}
+          >
+            <span
+              className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${isPublic ? 'translate-x-3' : ''}`}
+            />
           </span>
-        </label>
+        </button>
 
         <div className="flex items-center justify-between pt-2">
           <div className="flex gap-1 -ml-2">
