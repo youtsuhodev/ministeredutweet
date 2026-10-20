@@ -98,7 +98,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil(
     (async () => {
       try {
-        const key = event.oldSubscription && event.oldSubscription.options.applicationServerKey;
+        const key = event.oldSubscription?.options.applicationServerKey;
         if (!key) return;
         const sub = await self.registration.pushManager.subscribe({
           userVisibleOnly: true,
