@@ -1,4 +1,4 @@
-# <img src="https://wouaff.app/assets/logo/logo.png" alt="Wouaff Logo" width="30" height="30" align="left" style="margin-right: 9px; margin-top: 5px;"> Wouaff — t'as capté 🐺
+# <img src="https://wouaff.app/assets/logo/logo.png" alt="Ministère du vide Logo" width="30" height="30" align="left" style="margin-right: 9px; margin-top: 5px;"> Ministère du vide — t'as capté 🐺
 
 *Le premier réseau social **français** et **souverain***  
 *Conçu en France, hébergé en France, pour les Français.*
@@ -34,9 +34,9 @@
 
 ---
 
-## 🛡️ La souveraineté Wouaff
+## 🛡️ La souveraineté du Ministère du vide
 
-À l'origine une application de messagerie, **Wouaff** est devenu un réseau social souverain. Nos engagements sont clairs :
+À l'origine une application de messagerie, **Ministère du vide** est devenu un réseau social souverain. Nos engagements sont clairs :
 
 - 🇫🇷 **Hébergement 100 % français** — toutes les données restent sur le territoire national.
 - ⚖️ **RGPD & lois européennes** — le droit français et européen s'appliquent, sans compromis.
@@ -111,7 +111,7 @@ Les administrateurs nomment ensuite les modérateurs depuis `/admin` → Utilisa
 CAP_ADMIN_KEY=une-longue-valeur-secrète docker compose -f cap/docker-compose.yml up -d
 ```
 
-Ouvre `http://127.0.0.1:3001`, connecte-toi avec `CAP_ADMIN_KEY`, crée une clé de site (laisse l'instrumentation désactivée), puis renseigne `CAP_URL`, `CAP_SITE_KEY` et `CAP_SECRET` dans `server/.env`. Cap ne doit pas être exposé publiquement : seul le serveur Wouaff le contacte.
+Ouvre `http://127.0.0.1:3001`, connecte-toi avec `CAP_ADMIN_KEY`, crée une clé de site (laisse l'instrumentation désactivée), puis renseigne `CAP_URL`, `CAP_SITE_KEY` et `CAP_SECRET` dans `server/.env`. Cap ne doit pas être exposé publiquement : seul le serveur Ministère du vide le contacte.
 
 Les tables sont créées automatiquement au démarrage du serveur (`server/src/migrations`).
 

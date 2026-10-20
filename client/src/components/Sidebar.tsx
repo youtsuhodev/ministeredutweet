@@ -24,8 +24,8 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
     <aside className="hidden md:flex w-[275px] h-screen flex-col justify-between border-r border-[var(--border-color)] px-4 py-3 sticky top-0 overflow-y-auto">
       <div>
         <div className="flex items-center gap-2 px-3 py-3 mb-1">
-          <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-8 h-8 rounded-lg" />
-          <span className="text-xl font-black text-[var(--text-primary)]">Wouaff</span>
+          <img src="/assets/logo/logo.png" alt="Logo Ministère du vide" className="w-8 h-8 rounded-lg" />
+          <span className="text-xl font-black text-[var(--text-primary)]">Ministère du vide</span>
         </div>
 
         <nav aria-label="Navigation principale" className="flex flex-col gap-1">
@@ -109,7 +109,7 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
           </Link>
         </nav>
         <div className="mt-2 px-3 text-xs text-[var(--text-secondary)]">
-          © 2026 Wouaff. Pas de revente de données. Pas de pub.
+          © 2026 Ministère du vide. Pas de revente de données. Pas de pub.
         </div>
       </div>
     </aside>

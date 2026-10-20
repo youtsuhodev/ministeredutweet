@@ -1,10 +1,10 @@
-# Wouaff
+# Ministère du vide
 
-Wouaff est un réseau social français open source, sans publicité, dont les données sont hébergées en France.
+Le Ministère du vide est un réseau social français open source, sans publicité, dont les données sont hébergées en France.
 
 ## À propos
 
-Wouaff propose des posts (texte, images, vidéos), des réponses, des reposts, des abonnements, des notifications et une recherche. Le code source est disponible sur GitHub.
+Le Ministère du vide propose des posts (texte, images, vidéos), des réponses, des reposts, des abonnements, des notifications et une recherche. Le code source est disponible sur GitHub.
 
 - Site : https://wouaff.app
 - Code source : https://github.com/Wouaff/WouaffApp

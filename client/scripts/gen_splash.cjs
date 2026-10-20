@@ -35,8 +35,8 @@ const html = `<!doctype html>
 </head>
 <body>
   <div class="wrap">
-    <img class="logo" src="/assets/logo/logo.png" alt="Wouaff" />
-    <div class="word">Wouaff</div>
+    <img class="logo" src="/assets/logo/logo.png" alt="Ministère du vide" />
+    <div class="word">Ministère du vide</div>
     <div class="spin"></div>
   </div>
 </body>

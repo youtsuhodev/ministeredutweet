@@ -668,7 +668,7 @@ function DisplayTab() {
   return (
     <div>
       <h2 className="font-extrabold text-xl mb-2">Affichage</h2>
-      <p className="text-sm text-[var(--text-secondary)] mb-6">Choisis le thème de Wouaff.</p>
+      <p className="text-sm text-[var(--text-secondary)] mb-6">Choisis le thème du Ministère du vide.</p>
       <div
         role="radiogroup"
         aria-label="Thème"
@@ -743,7 +743,7 @@ function PrivacyTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'wouaff-export.json';
+      a.download = 'ministere-du-vide-export.json';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -790,7 +790,7 @@ function PrivacyTab() {
 
       <h2 className="font-extrabold text-xl mb-2">Tes données</h2>
       <p className="text-sm text-[var(--text-secondary)] mb-4">
-        Télécharge une copie de tout ce que Wouaff conserve sur toi (profil, posts, commentaires, abonnements,
+        Télécharge une copie de tout ce que le Ministère du vide conserve sur toi (profil, posts, commentaires, abonnements,
         sessions…).
       </p>
       <button type="button" onClick={exportData} disabled={exporting} className={outlineBtn}>

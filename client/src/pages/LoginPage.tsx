@@ -70,13 +70,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-8">
       <div className="w-full max-w-[440px]">
         <div className="flex flex-col items-center mb-8">
-          <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-14 h-14 rounded-2xl mb-3" />
-          <h1 className="text-4xl font-black text-[var(--text-primary)]">Wouaff</h1>
+          <img src="/assets/logo/logo.png" alt="Logo Ministère du vide" className="w-14 h-14 rounded-2xl mb-3" />
+          <h1 className="text-4xl font-black text-[var(--text-primary)]">Ministère du vide</h1>
           <p className="text-[var(--text-secondary)] mt-1">T'as capté 🐺</p>
         </div>
 
         <h2 className="text-3xl font-extrabold text-[var(--text-primary)] mb-6">
-          {mode === 'login' ? 'Connexion à Wouaff' : 'Crée ton compte'}
+          {mode === 'login' ? 'Connexion au Ministère du vide' : 'Crée ton compte'}
         </h2>
 
         {error && (
@@ -210,7 +210,7 @@ export default function LoginPage() {
         </p>
 
         <div className="mt-8 text-center text-xs text-[var(--text-secondary)]">
-          © 2026 Wouaff. Pas de revente de données. Pas de pub.
+          © 2026 Ministère du vide. Pas de revente de données. Pas de pub.
         </div>
       </div>
     </div>

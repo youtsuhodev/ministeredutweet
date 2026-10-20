@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-/* Captcha Cap (auto-hébergé) : le serveur Wouaff relaie le défi sur /api/captcha/. Le calcul se fait dans le
+/* Captcha Cap (auto-hébergé) : le serveur Ministère du vide relaie le défi sur /api/captcha/. Le calcul se fait dans le
    navigateur (WebAssembly) ; aucune ressource externe n'est chargée. */
 
 let configPromise: Promise<boolean> | null = null;

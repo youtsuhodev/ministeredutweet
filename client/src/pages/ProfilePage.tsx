@@ -199,7 +199,7 @@ export default function ProfilePage() {
             </a>
           )}
           <span className="flex items-center gap-1">
-            <Calendar className="w-4 h-4" />A rejoint Wouaff en {monthYear(profile.createdAt)}
+            <Calendar className="w-4 h-4" />A rejoint le Ministère du vide en {monthYear(profile.createdAt)}
           </span>
         </div>
 

@@ -78,8 +78,8 @@ async function sendVerificationEmail(uid: string, email: string): Promise<boolea
   const token = await createAuthToken(uid, 'verify', 24 * 60 * 60 * 1000);
   return sendMail(
     email,
-    'Confirme ton adresse e-mail — Wouaff',
-    `Bienvenue sur Wouaff !\n\nConfirme ton adresse e-mail en ouvrant ce lien (valable 24 h) :\n${appUrl()}/verify-email?token=${token}\n\nSi tu n'es pas à l'origine de cette inscription, ignore ce message.`,
+    'Confirme ton adresse e-mail — Ministère du vide',
+    `Bienvenue au Ministère du vide !\n\nConfirme ton adresse e-mail en ouvrant ce lien (valable 24 h) :\n${appUrl()}/verify-email?token=${token}\n\nSi tu n'es pas à l'origine de cette inscription, ignore ce message.`,
   );
 }
 
@@ -272,7 +272,7 @@ router.post('/forgot-password', mailLimiter, verifyCaptcha, async (req, res) => 
     const token = await createAuthToken(user.uid, 'reset', 60 * 60 * 1000);
     await sendMail(
       user.email,
-      'Réinitialisation de ton mot de passe — Wouaff',
+      'Réinitialisation de ton mot de passe — Ministère du vide',
       `Tu as demandé à réinitialiser ton mot de passe.\n\nOuvre ce lien (valable 1 h) :\n${appUrl()}/reset-password?token=${token}\n\nSi ce n'est pas toi, ignore ce message : ton mot de passe reste inchangé.`,
     );
   })().catch((err) => console.error('[AUTH] Forgot-password error:', err));
@@ -415,15 +415,15 @@ router.post('/email', authMiddleware, authLimiter, mailLimiter, async (req, res)
   const token = await createAuthToken(full.uid, 'email', 24 * 60 * 60 * 1000, newEmail);
   const sent = await sendMail(
     newEmail,
-    'Confirme ta nouvelle adresse e-mail — Wouaff',
-    `Tu as demandé à utiliser cette adresse pour ton compte Wouaff.\n\nConfirme en ouvrant ce lien (valable 24 h) :\n${appUrl()}/verify-email?token=${token}\n\nSi ce n'est pas toi, ignore ce message.`,
+    'Confirme ta nouvelle adresse e-mail — Ministère du vide',
+    `Tu as demandé à utiliser cette adresse pour ton compte Ministère du vide.\n\nConfirme en ouvrant ce lien (valable 24 h) :\n${appUrl()}/verify-email?token=${token}\n\nSi ce n'est pas toi, ignore ce message.`,
   );
   if (!sent) return res.status(502).json({ error: "Impossible d'envoyer l'e-mail de confirmation" });
   /* Alerte sur l'ancienne adresse : en cas de piratage, le vrai propriétaire est prévenu. */
   sendMail(
     full.email,
-    "Demande de changement d'adresse e-mail — Wouaff",
-    `Une demande de changement d'adresse e-mail a été faite pour ton compte Wouaff. L'adresse actuelle reste valable tant que la nouvelle n'est pas confirmée.\n\nSi ce n'est pas toi, change vite ton mot de passe.`,
+    "Demande de changement d'adresse e-mail — Ministère du vide",
+    `Une demande de changement d'adresse e-mail a été faite pour ton compte Ministère du vide. L'adresse actuelle reste valable tant que la nouvelle n'est pas confirmée.\n\nSi ce n'est pas toi, change vite ton mot de passe.`,
   ).catch(() => {});
   res.json({ ok: true, pending: true, email: newEmail });
 });
@@ -487,7 +487,7 @@ router.post('/sessions/revoke-others', authMiddleware, async (req, res) => {
 
 router.get('/export', authMiddleware, mailLimiter, async (req, res) => {
   const data = await exportUserData(currentUser(req).uid);
-  res.setHeader('Content-Disposition', 'attachment; filename="wouaff-export.json"');
+  res.setHeader('Content-Disposition', 'attachment; filename="ministere-du-vide-export.json"');
   res.json(data);
 });
 

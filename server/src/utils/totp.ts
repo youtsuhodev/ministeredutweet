@@ -57,7 +57,7 @@ export function verifyTotp(secret: string, code: string): boolean {
   return verifyTotpStep(secret, code) !== null;
 }
 
-export function totpUri(secret: string, account: string, issuer = 'Wouaff'): string {
+export function totpUri(secret: string, account: string, issuer = 'Ministère du vide'): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }

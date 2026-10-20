@@ -13,12 +13,12 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-8">
       <div className="w-full max-w-[440px]">
         <div className="flex flex-col items-center mb-8">
-          <img src="/assets/logo/logo.png" alt="Logo Wouaff" className="w-14 h-14 rounded-2xl mb-3" />
+          <img src="/assets/logo/logo.png" alt="Logo Ministère du vide" className="w-14 h-14 rounded-2xl mb-3" />
           <h1 className="text-3xl font-black text-[var(--text-primary)]">{title}</h1>
         </div>
         {children}
         <p className="mt-8 text-center text-sm">
-          <Link to="/">Retour à Wouaff</Link>
+          <Link to="/">Retour au Ministère du vide</Link>
         </p>
       </div>
     </div>

@@ -92,8 +92,8 @@ export default function ExplorePage() {
               type="search"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Rechercher sur Wouaff"
-              aria-label="Rechercher sur Wouaff"
+              placeholder="Rechercher sur le Ministère du vide"
+              aria-label="Rechercher sur le Ministère du vide"
               className="bg-transparent text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none flex-1 text-[15px]"
             />
           </div>

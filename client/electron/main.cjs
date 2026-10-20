@@ -40,10 +40,10 @@ function initDiscordPresence() {
 function updatePresence(page) {
   if (!discordClient) return;
   const map = {
-    home: { details: 'Parcourt son fil', state: 'Wouaff' },
-    login: { details: 'Connexion', state: 'Wouaff' },
-    register: { details: 'Crée son compte', state: 'Wouaff' },
-    settings: { details: 'Paramètres', state: 'Wouaff' },
+    home: { details: 'Parcourt son fil', state: 'Ministère du vide' },
+    login: { details: 'Connexion', state: 'Ministère du vide' },
+    register: { details: 'Crée son compte', state: 'Ministère du vide' },
+    settings: { details: 'Paramètres', state: 'Ministère du vide' },
   };
   const { details, state } = map[page] || map.home;
   presenceActivity = {
@@ -51,7 +51,7 @@ function updatePresence(page) {
     state,
     startTimestamp: Date.now(),
     largeImageKey: 'wouaff_logo',
-    largeImageText: 'Wouaff — ton fil, pas leur algo',
+    largeImageText: 'Ministère du vide — ton fil, pas leur algo',
   };
   discordClient.setActivity(presenceActivity).catch(() => {});
 }

@@ -18,11 +18,11 @@ export default function RecoveryCodes({ codes, onDone }: { codes: string[]; onDo
 
   const download = () => {
     const url = URL.createObjectURL(
-      new Blob([`Codes de secours Wouaff (usage unique)\n\n${text}\n`], { type: 'text/plain' }),
+      new Blob([`Codes de secours Ministère du vide (usage unique)\n\n${text}\n`], { type: 'text/plain' }),
     );
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'wouaff-codes-de-secours.txt';
+    a.download = 'ministere-du-vide-codes-de-secours.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
