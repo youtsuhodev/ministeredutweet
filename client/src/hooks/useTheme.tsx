@@ -41,9 +41,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', theme === 'light' ? '#eef2f7' : '#020617');
+    /* Les deux balises (clair/sombre) prennent la couleur du thème choisi, pas celle du système. */
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+      meta.setAttribute('content', theme === 'light' ? '#eef2f7' : '#020617');
+    }
   }, [theme]);
 
   const setPreference = useCallback((pref: ThemePreference) => {

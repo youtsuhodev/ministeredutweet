@@ -173,3 +173,41 @@ cap-widget {
   --cap-spinner-color: var(--accent);
   --cap-spinner-background-color: var(--border-color);
 }
+
+/* ── Écrans tactiles, PWA installée ─────────────────────────────────────────────
+   Rien ici ne s'applique à la souris : le rendu PC reste identique. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+@media (pointer: coarse) {
+  /* iOS zoome la page quand on active un champ dont la police fait moins de 16px. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Supprime le délai de 300 ms et le zoom au double-tap sur les éléments cliquables. */
+  a,
+  button,
+  [role="button"],
+  [role="tab"],
+  summary,
+  label {
+    touch-action: manipulation;
+  }
+}
+
+/* Appli installée : pas de « tirer pour rafraîchir » ni d'effet élastique qui décale la barre du bas. */
+@media (display-mode: standalone), (display-mode: minimal-ui) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}

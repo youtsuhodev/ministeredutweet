@@ -56,7 +56,7 @@ export default function LegalPage() {
   if (!page) return <Navigate to="/" replace />;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex justify-center">
+    <div className="min-h-dvh bg-[var(--bg-primary)] flex justify-center">
       <main className="w-full max-w-[680px] bg-[var(--bg-secondary)] border-x border-[var(--border-color)]">
         <PageHeader title={page.title} back={user ? '/' : '/auth'} />
         <div className="p-6 space-y-4 text-[var(--text-primary)] leading-relaxed">

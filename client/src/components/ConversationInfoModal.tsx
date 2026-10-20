@@ -106,14 +106,17 @@ export default function ConversationInfoModal({ conversation, meUid, onClose, on
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[6vh]" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-[6dvh]"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-[var(--bg-modal)]" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Infos du groupe"
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-[480px] mx-4 shadow-xl border border-[var(--border-color)] max-h-[88vh] flex flex-col"
+        className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-[480px] mx-4 shadow-xl border border-[var(--border-color)] max-h-[88dvh] flex flex-col"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
           <h2 className="font-extrabold text-lg">Infos du groupe</h2>

@@ -15,13 +15,16 @@ export default function ComposeModal({ onClose, onPosted }: ComposeModalProps) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh]" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-[5dvh]"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-[var(--bg-modal)]" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Nouveau post"
-        className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-[600px] mx-4 shadow-xl border border-[var(--border-color)]"
+        className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-[600px] mx-4 shadow-xl border border-[var(--border-color)] max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center px-4 py-3 border-b border-[var(--border-color)]">

@@ -24,11 +24,11 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
 
   return (
     /* Sous 768px la colonne de gauche laisse la place à la barre de navigation basse. */
-    <aside className="hidden md:flex w-[275px] h-screen flex-col justify-between border-r border-[var(--border-color)] px-4 py-3 sticky top-0 overflow-y-auto">
+    <aside className="hidden md:flex w-[76px] xl:w-[275px] h-dvh flex-col justify-between border-r border-[var(--border-color)] px-2 xl:px-4 py-3 sticky top-0 overflow-y-auto no-scrollbar">
       <div>
-        <div className="flex items-center gap-2 px-3 py-3 mb-1">
+        <div className="flex items-center justify-center xl:justify-start gap-2 px-3 py-3 mb-1">
           <img src="/assets/logo/logo.png" alt="Logo Ministère du vide" className="w-8 h-8 rounded-lg" />
-          <span className="text-xl font-black text-[var(--text-primary)]">Ministère du vide</span>
+          <span className="hidden xl:inline text-xl font-black text-[var(--text-primary)]">Ministère du vide</span>
         </div>
 
         <nav aria-label="Navigation principale" className="flex flex-col gap-1">
@@ -37,8 +37,10 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
               key={to}
               to={to}
               end={to === '/'}
+              aria-label={label}
+              title={label}
               className={({ isActive }) =>
-                `flex items-center gap-5 px-3 py-3 rounded-full text-lg transition-colors hover:no-underline ${
+                `flex items-center justify-center xl:justify-start gap-5 px-3 py-3 rounded-full text-lg transition-colors hover:no-underline ${
                   isActive
                     ? 'font-bold text-[var(--text-primary)] bg-[var(--accent)]/10'
                     : 'text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
@@ -55,7 +57,7 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
                       </span>
                     )}
                   </span>
-                  <span>{label}</span>
+                  <span className="hidden xl:inline">{label}</span>
                 </>
               )}
             </NavLink>
@@ -65,18 +67,20 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
         <button
           type="button"
           onClick={onCompose}
+          aria-label="Publier"
+          title="Publier"
           className="mt-4 w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold rounded-full py-3 flex items-center justify-center gap-2 transition-colors"
         >
           <Feather className="w-5 h-5" />
-          Publier
+          <span className="hidden xl:inline">Publier</span>
         </button>
       </div>
 
       <div className="pb-1">
-        <div className="flex items-center gap-3 px-3 py-3 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors">
-          <Link to={`/${user?.pseudo}`} className="flex items-center gap-3 flex-1 min-w-0 hover:no-underline">
+        <div className="flex flex-col xl:flex-row items-center gap-1 xl:gap-3 px-1 xl:px-3 py-3 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors">
+          <Link to={`/${user?.pseudo}`} className="flex items-center gap-3 xl:flex-1 min-w-0 hover:no-underline">
             <Avatar src={user?.avatar} name={user?.pseudo} />
-            <div className="flex-1 min-w-0">
+            <div className="hidden xl:block flex-1 min-w-0">
               <div className="font-bold text-sm text-[var(--text-primary)] truncate">
                 {user?.displayName || user?.pseudo}
               </div>
@@ -96,7 +100,7 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
 
         <nav
           aria-label="Informations légales"
-          className="mt-3 px-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]"
+          className="mt-3 px-3 hidden xl:flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]"
         >
           <Link to="/legal/conditions" className="text-[var(--text-secondary)]">
             Conditions
@@ -111,7 +115,7 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
             À propos
           </Link>
         </nav>
-        <div className="mt-2 px-3 text-xs text-[var(--text-secondary)]">
+        <div className="mt-2 px-3 hidden xl:block text-xs text-[var(--text-secondary)]">
           © 2026 Ministère du vide. Pas de revente de données. Pas de pub.
         </div>
       </div>

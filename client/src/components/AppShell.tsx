@@ -38,7 +38,9 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
   };
 
   return (
-    <div className={`flex min-h-screen justify-center ${chat ? '' : 'pb-16'} md:pb-0`}>
+    <div
+      className={`flex min-h-dvh justify-center pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] ${chat ? '' : 'pb-[calc(4rem+env(safe-area-inset-bottom))]'} md:pb-0`}
+    >
       <Sidebar onCompose={() => setShowCompose(true)} />
 
       <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
@@ -77,7 +79,7 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
           type="button"
           onClick={() => setShowCompose(true)}
           aria-label="Nouveau post"
-          className="md:hidden fixed right-4 bottom-20 z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center"
+          className="md:hidden fixed right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center"
         >
           <Feather className="w-6 h-6" />
         </button>

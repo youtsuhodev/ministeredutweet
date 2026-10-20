@@ -10,7 +10,7 @@ const buttonClass =
 
 function Frame({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-8">
+    <div className="min-h-dvh flex items-center justify-center bg-[var(--bg-primary)] px-4 py-8">
       <div className="w-full max-w-[440px]">
         <div className="flex flex-col items-center mb-8">
           <img src="/assets/logo/logo.png" alt="Logo Ministère du vide" className="w-14 h-14 rounded-2xl mb-3" />

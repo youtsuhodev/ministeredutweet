@@ -56,7 +56,7 @@ export default function ReportDialog({ postId, endpoint, subject = 'ce post', on
   /* Portail + stopPropagation : un clic dans la fenêtre ne doit pas ouvrir le post situé derrière. */
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-[8dvh]"
       onClick={(e) => {
         e.stopPropagation();
         onClose();

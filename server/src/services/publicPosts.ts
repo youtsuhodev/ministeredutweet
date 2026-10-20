@@ -32,7 +32,8 @@ interface Row {
 const SELECT = `SELECT p.id, p.text, p.image, p.video, p.audio, p.created_at, p.edited_at,
                        u.pseudo, u.displayName, u.verified
                 FROM posts p JOIN users u ON u.uid = p.uid`;
-const VISIBLE = "p.is_public = 1 AND p.repost_of IS NULL AND u.status = 'active'";
+/* Même règle que le fil (postQuery) : seuls les comptes bannis sont masqués ; une suspension (lecture seule) ne cache pas les posts. */
+const VISIBLE = "p.is_public = 1 AND p.repost_of IS NULL AND COALESCE(u.status, 'active') <> 'banned'";
 
 const toPost = (r: Row): PublicPost => ({
   id: r.id,
@@ -92,5 +93,5 @@ export async function explainHidden(id: number): Promise<string> {
   if (!row) return 'post introuvable en base';
   if (row.repost_of) return `ligne de repost de #${row.repost_of} : utilise l'id du post d'origine`;
   if (!row.is_public) return 'is_public = 0 : le post est privé';
-  return `compte « ${row.status} » (seuls les comptes « active » sont exposés)`;
+  return `compte « ${row.status} » : les posts des comptes bannis ne sont pas exposés`;
 }

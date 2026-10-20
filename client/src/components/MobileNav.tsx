@@ -28,7 +28,7 @@ export default function MobileNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-[var(--border-color)] bg-[var(--bg-secondary)] pb-[env(safe-area-inset-bottom)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-[var(--border-color)] bg-[var(--bg-secondary)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
     >
       {items.map(({ to, icon: Icon, label, badge }) => (
         <NavLink
