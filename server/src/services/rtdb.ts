@@ -402,6 +402,7 @@ async function purgePost(row: {
     await conn.execute('DELETE FROM likes WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM comments WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM notifications WHERE post_id = ?', [postId]);
+    await conn.execute('DELETE FROM post_views WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM posts WHERE id = ?', [postId]);
   });
   /* Un post public supprimé (par son auteur ou la modération) : on prévient les moteurs, la page répond 410. */
@@ -714,6 +715,10 @@ export async function deleteAccount(uid: string) {
     await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM push_subscriptions WHERE uid = ?', [uid]);
+    await conn.execute(
+      'DELETE FROM post_views WHERE post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
+      [uid],
+    );
     await conn.execute('DELETE FROM posts WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM users WHERE uid = ?', [uid]);
   });
