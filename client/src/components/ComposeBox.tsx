@@ -17,6 +17,18 @@ const IMAGE_TYPES = 'image/jpeg,image/png,image/gif,image/webp';
 const VIDEO_TYPES = 'video/mp4,video/webm,video/ogg,video/quicktime';
 const MAX_BYTES = 30 * 1024 * 1024;
 
+async function convertToPng(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('conversion impossible');
+  return new File([blob], 'image-collee.png', { type: 'image/png' });
+}
+
 export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxProps) {
   const { user } = useAuth();
   const [text, setText] = useState('');
@@ -41,9 +53,8 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
     if (videoInput.current) videoInput.current.value = '';
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  /* Rattache une image ou une vidéo au post (sélection de fichier ou image collée). */
+  const attachFile = (file: File) => {
     setError('');
     if (file.size > MAX_BYTES) {
       setError('Le fichier ne doit pas dépasser 30 Mo');
@@ -62,6 +73,30 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
     setMediaFile(file);
     setMediaType(isVideo ? 'video' : 'image');
     setMediaPreview(URL.createObjectURL(file));
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) attachFile(file);
+  };
+
+  /* Coller une image (capture d'écran, « Copier l'image » d'une page…) dans la zone de texte l'ajoute au post.
+     Un collage qui contient du texte (copie depuis Word, Excel…) reste un collage de texte. */
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (e.clipboardData.getData('text/plain')) return;
+    const image = Array.from(e.clipboardData.files).find((f) => f.type.startsWith('image/'));
+    if (!image) return;
+    e.preventDefault();
+    if (IMAGE_TYPES.split(',').includes(image.type)) {
+      attachFile(image);
+      return;
+    }
+    /* Format que le serveur n'accepte pas (BMP, AVIF…) : on le convertit en PNG dans le navigateur. */
+    try {
+      attachFile(await convertToPng(image));
+    } catch {
+      setError("Impossible d'utiliser cette image collée");
+    }
   };
 
   const canPost =
@@ -127,6 +162,7 @@ export default function ComposeBox({ onPosted, compact, autoFocus }: ComposeBoxP
           value={text}
           onValueChange={setText}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           autoFocus={autoFocus}
           aria-label="Écrire un post"
           placeholder={`Quoi de neuf, ${user?.displayName || user?.pseudo || ''} ?`}
