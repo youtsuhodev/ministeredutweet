@@ -76,6 +76,7 @@ self.addEventListener('push', (event) => {
     icon: '/assets/pwa/icon-192.png',
     badge: '/assets/pwa/icon-192.png',
     tag: typeof data.tag === 'string' ? data.tag : undefined,
+    renotify: typeof data.tag === 'string' && data.renotify === true,
     data: { url: typeof data.url === 'string' ? data.url : '/' },
   };
   event.waitUntil(

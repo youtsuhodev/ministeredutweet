@@ -4,7 +4,9 @@ import { authMiddleware, currentUser, requireVerifiedEmail } from '../middleware
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import { notifyIndexNow, publicPostPath } from '../services/indexnow.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
+import { getPostStats, recordViews, viewerHash } from '../services/postViews.js';
 import { setPostPublic } from '../services/publicPosts.js';
+import { pushNewPost } from '../services/pushBroadcast.js';
 import {
   createComment,
   createNotification,
@@ -59,6 +61,12 @@ const editLimiter = rateLimit({
   windowMs: minute,
   max: 20,
   message: 'Tu modifies trop vite, patiente un peu',
+  key: byUser,
+});
+const viewLimiter = rateLimit({
+  windowMs: minute,
+  max: 60,
+  message: 'Trop de requêtes, ralentis un peu',
   key: byUser,
 });
 const reportLimiter = rateLimit({
@@ -140,6 +148,8 @@ router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, 
       isPublic,
     );
     if (cleanText) await notifyMentions(cleanText, uid, postId);
+    /* Notification push à tous les abonnés (sans attendre : un échec push ne bloque pas la publication). */
+    void pushNewPost(postId, uid);
     if (isPublic) notifyIndexNow([publicPostPath(postId), '/publications']);
     res.json({ id: postId });
   } catch (err) {
@@ -172,6 +182,34 @@ router.put('/:id', authMiddleware, requireVerifiedEmail, editLimiter, async (req
     res.json({ text: post?.text ?? (cleanText || null), editedAt: post?.editedAt ?? null });
   } catch (err) {
     console.error('[POSTS] Edit error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/* Vues vues à l'écran (par lots) : un visiteur, identifié par l'empreinte de son IP, compte une fois par post. */
+router.post('/views', authMiddleware, viewLimiter, async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids)
+      ? (req.body.ids as unknown[]).map(parseId).filter((n): n is number => n !== null)
+      : [];
+    await recordViews(ids, viewerHash(req.ip), currentUser(req).uid);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[POSTS] Views error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/* Statistiques d'un post : visibles uniquement par son auteur. */
+router.get('/:id/stats', authMiddleware, async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (!id) return res.status(404).json({ error: 'Post introuvable' });
+    const stats = await getPostStats(id, currentUser(req).uid);
+    if (!stats) return res.status(404).json({ error: 'Post introuvable' });
+    res.json(stats);
+  } catch (err) {
+    console.error('[POSTS] Stats error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

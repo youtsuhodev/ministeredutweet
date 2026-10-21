@@ -1,5 +1,6 @@
 import {
   Ban,
+  ChartNoAxesColumn,
   Flag,
   Globe,
   Heart,
@@ -11,15 +12,17 @@ import {
   Share,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { fullDate, timeAgo } from '../lib/time';
+import { formatCount, trackView } from '../lib/views';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
 import MentionTextarea from './MentionTextarea';
 import ReportDialog from './ReportDialog';
 import RichText from './RichText';
+import StatsDialog from './StatsDialog';
 import VerifiedBadge from './VerifiedBadge';
 import VoicePlayer from './VoicePlayer';
 
@@ -45,6 +48,8 @@ export interface Post {
   editedAt: string | null;
   /* visible sans connexion (page /p/:id, indexable) : choix de l'auteur */
   isPublic: boolean;
+  /* vues uniques */
+  viewsCount: number;
   feedAt: string;
   likesCount: number;
   repostsCount: number;
@@ -88,6 +93,8 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [reporting, setReporting] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
   /* texte affiché : suit les modifications sans recharger le fil */
   const [text, setText] = useState(post.text);
   const [editedAt, setEditedAt] = useState(post.editedAt);
@@ -96,6 +103,29 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+
+  /* Une vue = le post est resté au moins une seconde à moitié visible à l'écran. */
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    let timer: number | undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          timer ??= window.setTimeout(() => trackView(post.id), 1000);
+        } else if (timer !== undefined) {
+          window.clearTimeout(timer);
+          timer = undefined;
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [post.id]);
 
   const flash = (msg: string) => {
     setNotice(msg);
@@ -233,6 +263,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
 
   return (
     <article
+      ref={cardRef}
       onClick={openPost}
       className={`px-4 pt-2 pb-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/40 transition-colors ${linkToPost ? 'cursor-pointer' : ''}`}
     >
@@ -324,6 +355,16 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
                         icon={<Globe className="w-4 h-4" />}
                         label={isPublic ? 'Repasser en privé' : 'Rendre public (Google)'}
                         onClick={togglePublic}
+                      />
+                    )}
+                    {canEdit && (
+                      <MenuItem
+                        icon={<ChartNoAxesColumn className="w-4 h-4" />}
+                        label="Voir les statistiques"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setShowStats(true);
+                        }}
                       />
                     )}
                     {canDelete && (
@@ -471,6 +512,33 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               <span className="text-sm">{likesCount || ''}</span>
             </button>
 
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => setShowStats(true)}
+                aria-label={`Vues : ${post.viewsCount}. Voir les statistiques`}
+                title="Voir les statistiques"
+                className="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors group"
+              >
+                <span className="p-2 rounded-full group-hover:bg-[var(--accent)]/10 transition-colors">
+                  <ChartNoAxesColumn className="w-5 h-5" />
+                </span>
+                <span className="text-sm tabular-nums">{formatCount(post.viewsCount)}</span>
+              </button>
+            ) : (
+              <span
+                role="img"
+                aria-label={`Vues : ${post.viewsCount}`}
+                title="Vues"
+                className="flex items-center gap-1.5 text-[var(--text-secondary)]"
+              >
+                <span className="p-2">
+                  <ChartNoAxesColumn className="w-5 h-5" />
+                </span>
+                <span className="text-sm tabular-nums">{formatCount(post.viewsCount)}</span>
+              </span>
+            )}
+
             <button
               type="button"
               onClick={handleShare}
@@ -484,6 +552,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
           </div>
         </div>
       </div>
+      {showStats && <StatsDialog postId={post.id} onClose={() => setShowStats(false)} />}
       {reporting && (
         <ReportDialog
           postId={post.id}

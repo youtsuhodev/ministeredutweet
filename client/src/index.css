@@ -211,3 +211,25 @@ body {
     overscroll-behavior-y: none;
   }
 }
+
+/* Feuille qui monte du bas de l'écran (invitation aux notifications). */
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheet-up {
+  animation: sheetUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-up {
+    animation: none;
+  }
+}

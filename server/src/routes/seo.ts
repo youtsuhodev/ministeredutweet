@@ -7,11 +7,14 @@ import { PAGES } from '../seo/content.js';
 import { injectShell, renderPage, robotsTxt, shellMeta, sitemapIndexXml, sitemapPagesXml } from '../seo/render.js';
 import { renderGonePage, renderPostPage, renderPublicationsPage, sitemapPostsXml } from '../seo/renderPosts.js';
 import { indexNowKey } from '../services/indexnow.js';
+import { recordViews, viewerHash } from '../services/postViews.js';
 import { explainHidden, getPublicPost, listPublicPosts } from '../services/publicPosts.js';
 import { parseId } from '../utils/validation.js';
 
 /* Pages publiques servies sans connexion et lisant la base : un robot ne doit pas pouvoir la saturer. */
 const publicLimiter = rateLimit({ windowMs: 60_000, max: 120, message: 'Trop de requêtes, ralentis un peu' });
+const BOT_RE =
+  /bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|whatsapp|discord|telegram|curl|wget|python-requests/i;
 const newest = (posts: { createdAt: Date; editedAt: Date | null }[]) =>
   posts.length ? (posts[0].editedAt ?? posts[0].createdAt).toISOString() : undefined;
 
@@ -67,6 +70,10 @@ export function seoRouter(origin: string): Router {
         console.warn(`[SEO] /p/${req.params.id} → 410 : ${id ? await explainHidden(id) : 'identifiant invalide'}`);
         res.status(410).type('text/html; charset=utf-8').send(renderGonePage(origin, req.path));
         return;
+      }
+      /* Une visite de la page publique compte comme une vue (sauf robots et aperçus de lien). */
+      if (!BOT_RE.test(req.get('user-agent') ?? '')) {
+        recordViews([post.id], viewerHash(req.ip)).catch((err) => console.warn('[VUES]', (err as Error).message));
       }
       res.type('text/html; charset=utf-8').send(renderPostPage(post, origin));
     } catch (err) {

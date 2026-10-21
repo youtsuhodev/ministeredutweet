@@ -1,6 +1,7 @@
 import { lazy, type ReactNode, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import MobileNav from './components/MobileNav';
+import PushPrompt from './components/PushPrompt';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { RealtimeProvider } from './hooks/useRealtime';
 import { ThemeProvider } from './hooks/useTheme';
@@ -93,6 +94,7 @@ export default function App() {
             <Suspense fallback={<Loading />}>
               <AppRoutes />
               <MobileNav />
+              <PushPrompt />
             </Suspense>
           </RealtimeProvider>
         </AuthProvider>

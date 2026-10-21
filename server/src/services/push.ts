@@ -102,6 +102,8 @@ export interface PushPayload {
   url: string;
   /* Une notification de même tag en remplace une précédente. */
   tag?: string;
+  /* Avec un tag : la notification remplaçante alerte à nouveau (son / vibration). */
+  renotify?: boolean;
   /* Nombre de notifications non lues, pour le badge de l'icône. */
   unread?: number;
 }
@@ -134,6 +136,34 @@ export async function sendPushToUser(uid: string, payload: PushPayload): Promise
   return delivered;
 }
 
+export interface PushPrefs {
+  newPosts: boolean;
+  activity: boolean;
+}
+
+export async function getPushPrefs(uid: string): Promise<PushPrefs> {
+  const row = await getOne<{ push_new_posts: number; push_activity: number }>(
+    'SELECT push_new_posts, push_activity FROM users WHERE uid = ?',
+    [uid],
+  );
+  return { newPosts: !row || !!row.push_new_posts, activity: !row || !!row.push_activity };
+}
+
+export async function setPushPrefs(uid: string, prefs: Partial<PushPrefs>): Promise<void> {
+  const sets: string[] = [];
+  const values: number[] = [];
+  if (typeof prefs.newPosts === 'boolean') {
+    sets.push('push_new_posts = ?');
+    values.push(prefs.newPosts ? 1 : 0);
+  }
+  if (typeof prefs.activity === 'boolean') {
+    sets.push('push_activity = ?');
+    values.push(prefs.activity ? 1 : 0);
+  }
+  if (sets.length === 0) return;
+  await query(`UPDATE users SET ${sets.join(', ')} WHERE uid = ?`, [...values, uid]);
+}
+
 const clip = (text: string, max: number) => {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
@@ -158,6 +188,11 @@ export async function pushForNotification(
   try {
     const hasSubs = await getOne<{ id: number }>('SELECT id FROM push_subscriptions WHERE uid = ? LIMIT 1', [uid]);
     if (!hasSubs) return;
+    /* Réglage « activité » (likes, réponses, mentions, abonnements) ; les messages de la plateforme passent toujours. */
+    if (opts.actorUid) {
+      const prefs = await getOne<{ push_activity: number }>('SELECT push_activity FROM users WHERE uid = ?', [uid]);
+      if (prefs && !prefs.push_activity) return;
+    }
 
     const unread = await getOne<{ count: number }>(
       'SELECT COUNT(*) AS count FROM notifications WHERE uid = ? AND is_read = 0',

@@ -3,12 +3,14 @@ import { patchRouter } from '../middleware/asyncHandler.js';
 import { authMiddleware, currentUser } from '../middleware/auth.js';
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import {
+  getPushPrefs,
   getVapidPublicKey,
   isAllowedEndpoint,
   isPushEnabled,
   removeSubscription,
   saveSubscription,
   sendPushToUser,
+  setPushPrefs,
 } from '../services/push.js';
 
 const router = patchRouter(Router());
@@ -60,6 +62,39 @@ router.post('/unsubscribe', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+/* Réglages des notifications (par compte) : nouveaux posts et activité, activés par défaut. */
+router.get('/preferences', authMiddleware, async (req, res) => {
+  try {
+    res.json(await getPushPrefs(currentUser(req).uid));
+  } catch (err) {
+    console.error('[PUSH] Preferences error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.put(
+  '/preferences',
+  authMiddleware,
+  rateLimit({ windowMs: 60_000, max: 30, message: 'Trop de modifications, patiente un instant', key: byUser }),
+  async (req, res) => {
+    const { newPosts, activity } = (req.body ?? {}) as { newPosts?: unknown; activity?: unknown };
+    if (
+      (newPosts !== undefined && typeof newPosts !== 'boolean') ||
+      (activity !== undefined && typeof activity !== 'boolean')
+    ) {
+      return res.status(400).json({ error: 'Réglage invalide' });
+    }
+    try {
+      const uid = currentUser(req).uid;
+      await setPushPrefs(uid, { newPosts, activity });
+      res.json(await getPushPrefs(uid));
+    } catch (err) {
+      console.error('[PUSH] Preferences update error:', err);
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  },
+);
 
 /* Notification de test vers tous les appareils du compte (bouton dans les paramètres). */
 router.post(
