@@ -24,16 +24,14 @@ export function findMigrationsDir(candidates: string[]): string | null {
 /* Découpe un fichier SQL en requêtes (séparées par « ; »), commentaires retirés : un reste de
    commentaire en fin de fichier ne doit pas être exécuté comme une requête vide. */
 export function splitStatements(sql: string): string[] {
+  /* Les commentaires sont retirés AVANT le découpage : un « ; » dans un commentaire ne doit pas couper une requête. */
   return sql
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n')
     .split(';')
-    .map((chunk) =>
-      chunk
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .split('\n')
-        .filter((line) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim(),
-    )
+    .map((stmt) => stmt.trim())
     .filter((stmt) => stmt.length > 0);
 }
 
