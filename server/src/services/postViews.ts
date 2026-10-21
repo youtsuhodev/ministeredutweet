@@ -41,9 +41,10 @@ export function viewerHash(ip: string | undefined): string {
 }
 
 /* Enregistre des vues. Ignore les reposts, les posts inconnus et l'auteur qui regarde son propre post. */
-export async function recordViews(ids: number[], hash: string, viewerUid?: string): Promise<void> {
+export async function recordViews(ids: number[], hash: string, viewerUid?: string): Promise<number[]> {
   const unique = [...new Set(ids)].slice(0, 50);
-  if (unique.length === 0) return;
+  const counted: number[] = [];
+  if (unique.length === 0) return counted;
   const rows = await query<{ id: number; uid: string }[]>(
     `SELECT id, uid FROM posts WHERE repost_of IS NULL AND id IN (${unique.map(() => '?').join(',')})`,
     unique,
@@ -55,8 +56,12 @@ export async function recordViews(ids: number[], hash: string, viewerUid?: strin
       [row.id, hash],
     );
     /* INSERT IGNORE n'ajoute rien si ce visiteur a déjà vu ce post : le compteur ne bouge alors pas. */
-    if (res.affectedRows === 1) await query('UPDATE posts SET views_count = views_count + 1 WHERE id = ?', [row.id]);
+    if (res.affectedRows === 1) {
+      await query('UPDATE posts SET views_count = views_count + 1 WHERE id = ?', [row.id]);
+      counted.push(row.id);
+    }
   }
+  return counted;
 }
 
 export interface PostStats {

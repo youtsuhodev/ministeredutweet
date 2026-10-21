@@ -192,8 +192,8 @@ router.post('/views', authMiddleware, viewLimiter, async (req, res) => {
     const ids = Array.isArray(req.body?.ids)
       ? (req.body.ids as unknown[]).map(parseId).filter((n): n is number => n !== null)
       : [];
-    await recordViews(ids, viewerHash(req.ip), currentUser(req).uid);
-    res.json({ ok: true });
+    const counted = await recordViews(ids, viewerHash(req.ip), currentUser(req).uid);
+    res.json({ ok: true, counted });
   } catch (err) {
     console.error('[POSTS] Views error:', err);
     res.status(500).json({ error: 'Erreur serveur' });

@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { fullDate, timeAgo } from '../lib/time';
-import { formatCount, trackView } from '../lib/views';
+import { formatCount, onViewCounted, trackView } from '../lib/views';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
 import MentionTextarea from './MentionTextarea';
@@ -95,6 +95,8 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [reporting, setReporting] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
+  /* compteur de vues affiché : monte dès que ce post est compté, sans recharger */
+  const [views, setViews] = useState(post.viewsCount);
   /* texte affiché : suit les modifications sans recharger le fil */
   const [text, setText] = useState(post.text);
   const [editedAt, setEditedAt] = useState(post.editedAt);
@@ -104,21 +106,28 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
-  /* Une vue = le post est resté au moins une seconde à moitié visible à l'écran. */
+  useEffect(() => onViewCounted(post.id, () => setViews((v) => v + 1)), [post.id]);
+
+  /* Une vue = le post est affiché à l'écran (sans clic) : au moins la moitié de sa hauteur, ou la moitié de l'écran
+     pour un post plus haut que l'écran, pendant une demi-seconde (un défilement rapide ne compte pas). */
   useEffect(() => {
     const el = cardRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
     let timer: number | undefined;
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          timer ??= window.setTimeout(() => trackView(post.id), 1000);
+      (entries) => {
+        const entry = entries[entries.length - 1];
+        const visible =
+          entry.isIntersecting &&
+          (entry.intersectionRatio >= 0.5 || entry.intersectionRect.height >= window.innerHeight * 0.5);
+        if (visible) {
+          timer ??= window.setTimeout(() => trackView(post.id), 500);
         } else if (timer !== undefined) {
           window.clearTimeout(timer);
           timer = undefined;
         }
       },
-      { threshold: 0.5 },
+      { threshold: [0, 0.25, 0.5, 0.75, 1] },
     );
     observer.observe(el);
     return () => {
@@ -516,26 +525,26 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               <button
                 type="button"
                 onClick={() => setShowStats(true)}
-                aria-label={`Vues : ${post.viewsCount}. Voir les statistiques`}
+                aria-label={`Vues : ${views}. Voir les statistiques`}
                 title="Voir les statistiques"
                 className="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors group"
               >
                 <span className="p-2 rounded-full group-hover:bg-[var(--accent)]/10 transition-colors">
                   <ChartNoAxesColumn className="w-5 h-5" />
                 </span>
-                <span className="text-sm tabular-nums">{formatCount(post.viewsCount)}</span>
+                <span className="text-sm tabular-nums">{formatCount(views)}</span>
               </button>
             ) : (
               <span
                 role="img"
-                aria-label={`Vues : ${post.viewsCount}`}
+                aria-label={`Vues : ${views}`}
                 title="Vues"
                 className="flex items-center gap-1.5 text-[var(--text-secondary)]"
               >
                 <span className="p-2">
                   <ChartNoAxesColumn className="w-5 h-5" />
                 </span>
-                <span className="text-sm tabular-nums">{formatCount(post.viewsCount)}</span>
+                <span className="text-sm tabular-nums">{formatCount(views)}</span>
               </span>
             )}
 
