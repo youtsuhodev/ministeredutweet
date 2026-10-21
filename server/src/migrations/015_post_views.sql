@@ -1,4 +1,4 @@
--- Vues uniques : une ligne par (post, visiteur) ; le visiteur est une empreinte irréversible (HMAC) de son adresse IP, jamais l'IP elle-même
+-- Vues uniques : une ligne par (post, visiteur), le visiteur est une empreinte irréversible (HMAC) de son adresse IP, jamais l'IP elle-même
 CREATE TABLE IF NOT EXISTS post_views (
   post_id BIGINT NOT NULL,
   viewer_hash CHAR(64) NOT NULL,
