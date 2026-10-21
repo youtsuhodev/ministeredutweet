@@ -5,10 +5,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import Avatar from '../components/Avatar';
 import { inputClass, outlineBtn, primaryBtn } from '../components/formStyles';
-import { EmailForm, PseudoForm } from '../components/IdentityForms';
+import { PseudoForm } from '../components/IdentityForms';
 import PageHeader from '../components/PageHeader';
 import PushSettings from '../components/PushSettings';
 import RecoveryCodes from '../components/RecoveryCodes';
+import { RecoveryKeysSettings } from '../components/RecoveryKeysDialog';
 import { useAuth } from '../hooks/useAuth';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { type ThemePreference, useTheme } from '../hooks/useTheme';
@@ -18,7 +19,7 @@ import { api, errorMessage } from '../services/api';
 import type { CurrentUser } from '../services/auth';
 
 const SETTINGS_TABS = [
-  { id: 'account', label: 'Ton compte', icon: User, description: 'Identifiants, mot de passe, e-mail.' },
+  { id: 'account', label: 'Ton compte', icon: User, description: 'Pseudo, mot de passe, clés de récupération.' },
   { id: 'profile', label: 'Profil', icon: UserCog, description: 'Photo, bannière, bio, liens.' },
   { id: 'security', label: 'Sécurité', icon: Shield, description: 'Double authentification, sessions.' },
   { id: 'display', label: 'Affichage', icon: Palette, description: 'Thème, installation, notifications.' },
@@ -138,12 +139,18 @@ function AccountTab({ user, refresh }: { user: CurrentUser; refresh: () => Promi
     <div>
       <h2 className="font-extrabold text-xl mb-2">Informations du compte</h2>
       <p className="text-sm text-[var(--text-secondary)] mb-6">
-        Ton pseudo et ton adresse e-mail (le mot de passe est demandé pour les modifier).
+        Ton pseudo et tes clés de récupération (le mot de passe est demandé pour les modifier). Il n’y a pas d’adresse
+        e-mail sur ton compte.
       </p>
 
       <div className="border border-[var(--border-color)] rounded-xl overflow-hidden mb-8">
         <PseudoForm user={user} refresh={refresh} />
-        <EmailForm user={user} refresh={refresh} />
+        <RecoveryKeysSettings
+          pseudo={user.pseudo}
+          keysLeft={user.recoveryKeysLeft}
+          totpEnabled={user.totpEnabled}
+          refresh={refresh}
+        />
       </div>
 
       <h3 className="font-extrabold text-lg mb-3">Changer de mot de passe</h3>

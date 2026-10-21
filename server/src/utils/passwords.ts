@@ -38,7 +38,7 @@ function normalize(value: string): string {
 export const COMMON_PASSWORD_ERROR = 'Ce mot de passe est trop courant ou trop facile à deviner, choisis-en un autre';
 
 /** Renvoie un message d'erreur si le mot de passe est trop faible, sinon null. */
-export function passwordProblem(password: string, context: { pseudo?: string; email?: string } = {}): string | null {
+export function passwordProblem(password: string, context: { pseudo?: string } = {}): string | null {
   const p = normalize(password);
   /* Même mot de passe avec des chiffres ou signes ajoutés à la fin (« password123! »). */
   const stripped = p.replace(/[\d!?.@#$*_-]+$/, '');
@@ -47,11 +47,8 @@ export function passwordProblem(password: string, context: { pseudo?: string; em
   if (new Set(p).size <= 2) return COMMON_PASSWORD_ERROR;
   if (SEQUENCES.some((seq) => seq.includes(p) && p.length >= 6)) return COMMON_PASSWORD_ERROR;
   const pseudo = normalize(context.pseudo ?? '');
-  const local = normalize((context.email ?? '').split('@')[0] ?? '');
-  for (const part of [pseudo, local]) {
-    if (part.length >= 4 && (p === part || stripped === part || p.includes(part))) {
-      return 'Le mot de passe ne doit pas contenir ton pseudo ni ton adresse e-mail';
-    }
+  if (pseudo.length >= 4 && (p === pseudo || stripped === pseudo || p.includes(pseudo))) {
+    return 'Le mot de passe ne doit pas contenir ton pseudo';
   }
   return null;
 }

@@ -54,7 +54,7 @@ Le projet suit une approche **« privacy by design »** : la souveraineté numé
 - 👤 **Profils** : photo, bannière, bio, abonnés / abonnements, onglets Posts · Réponses · Reposts.
 - 🔔 **Notifications** (likes, reposts, réponses, mentions, abonnements) avec badge de non-lus.
 - 🛡️ **Modération** : blocage, signalement par catégorie avec retour au signaleur, file de modération (`/admin`), sanctions (avertissement, suppression, suspension, bannissement), journal des actions, décisions notifiées avec motif.
-- 🔐 **Compte** : double authentification (appli TOTP), sessions visibles et révocables, codes de secours, mot de passe oublié, changement de pseudo et d'e-mail, confirmation d'e-mail (SMTP), captcha Cap auto-hébergé (optionnel), cookie de session `__Host-` en HTTPS.
+- 🔐 **Compte** : double authentification (appli TOTP), sessions visibles et révocables, codes de secours, inscription par pseudo + mot de passe (aucune adresse e-mail), clés de récupération pour le mot de passe oublié, changement de pseudo, captcha Cap auto-hébergé (optionnel), cookie de session `__Host-` en HTTPS.
 - 🇪🇺 **RGPD** : export des données et suppression définitive du compte depuis Paramètres → Confidentialité.
 - 🎨 Thème clair / sombre / automatique · 📱 PWA installable · 🖥️ appli de bureau (Electron).
 
@@ -69,7 +69,7 @@ Messagerie privée, communautés, stories, appels. Elles existaient dans l'ancie
 | Couche       | Technologies                                                    |
 |--------------|-----------------------------------------------------------------|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS                        |
-| **Backend**  | Express 4, MySQL / MariaDB (mysql2), nodemailer                 |
+| **Backend**  | Express 4, MySQL / MariaDB (mysql2)                                |
 | **Desktop**  | Electron, electron-builder                                      |
 | **Sécurité** | bcrypt, sessions httpOnly, TOTP, rate-limit, CSP, validations   |
 
@@ -92,7 +92,7 @@ npm --prefix server install
 npm --prefix client install
 
 cp server/.env.example server/.env
-# éditer server/.env : identifiants MySQL, APP_URL, SMTP éventuel
+# éditer server/.env : identifiants MySQL, APP_URL
 # recommandé : TOTP_ENCRYPTION_KEY=$(openssl rand -hex 32) pour chiffrer les secrets 2FA en base
 ```
 
@@ -161,7 +161,7 @@ WouaffApp/
         ├── config/         # base de données, migrations, captcha
         ├── middleware/     # auth, rate-limit, en-têtes de sécurité, erreurs
         ├── routes/         # auth, posts, profiles, social, notifications, trends, upload
-        ├── services/       # accès données (rtdb.ts), requête du fil, e-mails
+        ├── services/       # accès données (rtdb.ts), requête du fil
         └── migrations/     # 001_init.sql … 007_hardening.sql
 ```
 
@@ -170,7 +170,7 @@ WouaffApp/
 ## 🔐 Sécurité
 
 - 🍪 Sessions par cookie `httpOnly` + `SameSite=Lax`, expirantes, révocables ; purge automatique des sessions expirées.
-- 🔑 Mots de passe hachés (bcrypt), double authentification TOTP, réinitialisation par jeton à usage unique.
+- 🔑 Mots de passe hachés (bcrypt), double authentification TOTP, clés de récupération à usage unique (seule l'empreinte est stockée) pour réinitialiser le mot de passe.
 - 🚦 Rate-limit global et renforcé sur la connexion, l'inscription, les publications et les envois.
 - 🧱 Requêtes SQL paramétrées, entrées validées côté serveur (pseudos réservés, URL http(s) uniquement, médias limités aux uploads).
 - 📎 Uploads : type vérifié sur le contenu réel du fichier, EXIF/GPS retiré (`sharp`), `nosniff` et CSP restrictive sur `/uploads`, fichiers effacés avec le post ou le compte.

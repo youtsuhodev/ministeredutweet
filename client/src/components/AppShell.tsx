@@ -3,8 +3,8 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNotificationAlerts } from '../hooks/useNotificationAlerts';
 import { syncPushSubscription } from '../hooks/usePush';
-import { api } from '../services/api';
 import ComposeModal from './ComposeModal';
+import RecoveryNoticeDialog from './RecoveryKeysDialog';
 import RightSidebar from './RightSidebar';
 import Sidebar from './Sidebar';
 
@@ -20,22 +20,12 @@ interface AppShellProps {
 export default function AppShell({ children, onPosted, chat = false }: AppShellProps) {
   const { user } = useAuth();
   const [showCompose, setShowCompose] = useState(false);
-  const [resent, setResent] = useState<'idle' | 'sent' | 'error'>('idle');
 
   /* Push : rattache l'appareil au compte connecté ; Electron : notifications locales. */
   useNotificationAlerts(!!user);
   useEffect(() => {
     if (user) void syncPushSubscription(user.uid);
   }, [user]);
-
-  const resend = async () => {
-    try {
-      await api.post('/auth/resend-verification');
-      setResent('sent');
-    } catch {
-      setResent('error');
-    }
-  };
 
   return (
     <div
@@ -44,21 +34,6 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
       <Sidebar onCompose={() => setShowCompose(true)} />
 
       <main className="flex-1 min-w-0 border-r border-[var(--border-color)] max-w-[600px] bg-[var(--bg-secondary)]">
-        {user && !user.emailVerified && user.mailEnabled && (
-          <div className="px-4 py-2.5 text-sm bg-[var(--accent)]/10 border-b border-[var(--border-color)] flex items-center justify-between gap-3">
-            <span className="text-[var(--text-primary)]">
-              Confirme ton adresse e-mail : un lien t'a été envoyé à <strong>{user.email}</strong>.
-            </span>
-            <button
-              type="button"
-              onClick={resend}
-              disabled={resent === 'sent'}
-              className="font-bold text-[var(--accent)] whitespace-nowrap disabled:opacity-60"
-            >
-              {resent === 'sent' ? 'Envoyé' : resent === 'error' ? 'Réessayer' : 'Renvoyer'}
-            </button>
-          </div>
-        )}
         {user?.status === 'suspended' && (
           <div
             role="alert"
@@ -86,6 +61,8 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
       )}
 
       {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => onPosted?.()} />}
+
+      <RecoveryNoticeDialog />
     </div>
   );
 }

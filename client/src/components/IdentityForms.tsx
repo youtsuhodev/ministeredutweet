@@ -3,7 +3,7 @@ import { api, errorMessage } from '../services/api';
 import type { CurrentUser } from '../services/auth';
 import { inputClass, outlineBtn, primaryBtn } from './formStyles';
 
-/* Changement de pseudo / d'adresse e-mail : le mot de passe (et le code 2FA s'il est actif) est exigé. */
+/* Changement de pseudo : le mot de passe (et le code 2FA s'il est actif) est exigé. */
 
 interface Props {
   user: CurrentUser;
@@ -157,77 +157,6 @@ export function PseudoForm({ user, refresh }: Props) {
           <div className="flex gap-2">
             <button type="submit" disabled={f.busy} className={primaryBtn}>
               {f.busy ? '…' : 'Changer de pseudo'}
-            </button>
-            <button type="button" className={outlineBtn} onClick={f.reset}>
-              Annuler
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="mt-2">
-          <Feedback ok={f.ok} error="" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function EmailForm({ user, refresh }: Props) {
-  const f = useIdentityForm(user, '/auth/email', (newEmail) => ({ newEmail }));
-  return (
-    <div className="px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm text-[var(--text-secondary)]">E-MAIL</div>
-          <div className="font-bold text-[var(--text-primary)] mt-1 break-all">{user.email}</div>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {user.emailVerified
-              ? 'Adresse confirmée.'
-              : user.mailEnabled
-                ? 'Adresse non confirmée : vérifie ta boîte mail.'
-                : 'Adresse non confirmée.'}
-          </p>
-        </div>
-        {!f.open && (
-          <button type="button" className={outlineBtn} onClick={() => f.setOpen(true)}>
-            Modifier
-          </button>
-        )}
-      </div>
-      {f.open ? (
-        <form
-          className="mt-3 space-y-3"
-          onSubmit={(e) =>
-            f.submit<{ pending: boolean; email: string }>(e, async (r) => {
-              await refresh();
-              return r.pending
-                ? `Un lien de confirmation a été envoyé à ${r.email}. Ton adresse actuelle reste valable jusqu'à la confirmation.`
-                : `Ton adresse e-mail est maintenant ${r.email}.`;
-            })
-          }
-        >
-          <input
-            type="email"
-            aria-label="Nouvelle adresse e-mail"
-            placeholder="nouvelle@exemple.fr"
-            className={inputClass}
-            value={f.value}
-            onChange={(e) => f.setValue(e.target.value)}
-            autoComplete="email"
-            required
-          />
-          <SecondFactorFields
-            user={user}
-            password={f.password}
-            setPassword={f.setPassword}
-            code={f.code}
-            setCode={f.setCode}
-            idPrefix="email"
-          />
-          <Feedback ok={f.ok} error={f.error} />
-          <div className="flex gap-2">
-            <button type="submit" disabled={f.busy} className={primaryBtn}>
-              {f.busy ? '…' : "Changer d'adresse"}
             </button>
             <button type="button" className={outlineBtn} onClick={f.reset}>
               Annuler

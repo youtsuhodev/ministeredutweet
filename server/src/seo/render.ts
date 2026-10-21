@@ -439,8 +439,6 @@ Disallow: /admin
 Disallow: /settings
 Disallow: /notifications
 Disallow: /forgot-password
-Disallow: /reset-password
-Disallow: /verify-email
 
 Sitemap: ${origin}/sitemap.xml
 `;

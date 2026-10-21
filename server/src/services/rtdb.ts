@@ -11,7 +11,6 @@ import { removeUploadsIfUnreferenced } from './uploads.js';
 export interface User {
   uid: string;
   pseudo: string;
-  email: string;
   passwordHash: string;
   displayName: string | null;
   avatar: string | null;
@@ -20,7 +19,10 @@ export interface User {
   location: string | null;
   website: string | null;
   verified: number;
-  emailVerified: number;
+  /* 0 tant que le compte n'a pas enregistré ses clés de récupération (pop-up affichée). */
+  recovery_ack: number;
+  /* 1 pour un compte créé avant la suppression des e-mails : la pop-up explique le changement. */
+  legacy_notice: number;
   totp_secret: string | null;
   totp_enabled: number;
   /* Dernier pas TOTP (30 s) déjà consommé : empêche de rejouer un code. */
@@ -44,10 +46,6 @@ function hydrateUser(user: User | null): User | null {
   return user;
 }
 
-export async function findUserByEmail(email: string) {
-  return hydrateUser(await getOne<User>('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]));
-}
-
 export async function findUserByPseudo(pseudo: string) {
   return hydrateUser(await getOne<User>('SELECT * FROM users WHERE pseudo = ?', [pseudo]));
 }
@@ -56,12 +54,12 @@ export async function findUserByUid(uid: string) {
   return hydrateUser(await getOne<User>('SELECT * FROM users WHERE uid = ?', [uid]));
 }
 
-export async function createUser(uid: string, pseudo: string, email: string, passwordHash: string) {
+export async function createUser(uid: string, pseudo: string, passwordHash: string) {
   const now = Date.now();
   /* L'inscription n'est possible qu'après confirmation de l'âge minimum : on ne garde que la date de cette confirmation. */
   await query(
-    'INSERT INTO users (uid, pseudo, email, passwordHash, createdAt, age_confirmed_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [uid, pseudo, email.trim().toLowerCase(), passwordHash, now, now],
+    'INSERT INTO users (uid, pseudo, passwordHash, createdAt, age_confirmed_at) VALUES (?, ?, ?, ?, ?)',
+    [uid, pseudo, passwordHash, now, now],
   );
 }
 
@@ -73,12 +71,11 @@ const UPDATABLE_USER_FIELDS = new Set([
   'avatar',
   'banner',
   'passwordHash',
-  'emailVerified',
+  'recovery_ack',
   'totp_secret',
   'totp_enabled',
   'totp_last_step',
   'pseudo',
-  'email',
   'pseudo_changed_at',
   'role',
   'status',
@@ -166,57 +163,6 @@ export async function listSessions(uid: string) {
 
 export async function purgeExpiredSessions() {
   await query('DELETE FROM sessions WHERE expires_at < ?', [Date.now()]);
-  await query('DELETE FROM auth_tokens WHERE expires_at < ?', [Date.now()]);
-}
-
-/* ── Jetons à usage unique (reset mot de passe, vérification e-mail) ────────── */
-
-const hashToken = sha256Hex;
-
-export type AuthTokenType = 'reset' | 'verify' | 'email';
-
-/* `payload` : donnée liée au jeton (pour 'email', la nouvelle adresse à confirmer). */
-export async function createAuthToken(
-  uid: string,
-  type: AuthTokenType,
-  ttlMs: number,
-  payload?: string,
-): Promise<string> {
-  const token = randomBytes(32).toString('hex');
-  await query('DELETE FROM auth_tokens WHERE uid = ? AND type = ?', [uid, type]);
-  await query('INSERT INTO auth_tokens (token_hash, uid, type, expires_at, payload) VALUES (?, ?, ?, ?, ?)', [
-    hashToken(token),
-    uid,
-    type,
-    Date.now() + ttlMs,
-    payload ?? null,
-  ]);
-  return token;
-}
-
-/* Consomme le jeton (usage unique) et renvoie son contenu, ou null s'il est inconnu/expiré. */
-export async function consumeAuthTokenFull(
-  token: string,
-  type: AuthTokenType,
-): Promise<{ uid: string; payload: string | null } | null> {
-  const hash = hashToken(token);
-  const row = await getOne<{ uid: string; expires_at: number; payload: string | null }>(
-    'SELECT uid, expires_at, payload FROM auth_tokens WHERE token_hash = ? AND type = ?',
-    [hash, type],
-  );
-  if (!row) return null;
-  /* Suppression atomique : si deux requêtes présentent le même jeton en même temps, une seule le consomme. */
-  const result = await query<{ affectedRows: number }>('DELETE FROM auth_tokens WHERE token_hash = ? AND type = ?', [
-    hash,
-    type,
-  ]);
-  if (result.affectedRows !== 1) return null;
-  return row.expires_at < Date.now() ? null : { uid: row.uid, payload: row.payload };
-}
-
-/* Retourne l'uid et consomme le jeton, ou null s'il est inconnu/expiré. */
-export async function consumeAuthToken(token: string, type: AuthTokenType): Promise<string | null> {
-  return (await consumeAuthTokenFull(token, type))?.uid ?? null;
 }
 
 /* ── Codes de secours (2FA) ─────────────────────────────────────────────────── */
@@ -279,6 +225,67 @@ export async function countRecoveryCodes(uid: string): Promise<number> {
 
 export async function deleteRecoveryCodes(uid: string) {
   await query('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+}
+
+/* ── Clés de récupération du compte (mot de passe oublié) ───────────────────── */
+
+/* Distinctes des codes de secours 2FA : celles-ci servent à réinitialiser le mot de passe sans e-mail.
+   12 caractères de l'alphabet à 31 symboles = ~59 bits par clé ; seule l'empreinte est stockée. */
+export const ACCOUNT_KEY_COUNT = 10;
+
+function normalizeAccountKey(key: string): string {
+  return key.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function hashAccountKey(uid: string, key: string): string {
+  return sha256Hex(`wouaff-account-key:${uid}:${normalizeAccountKey(key)}`);
+}
+
+export function looksLikeAccountKey(key: string): boolean {
+  return normalizeAccountKey(key).length === 12;
+}
+
+/* Remplace les clés existantes par un nouveau lot ; renvoie les clés en clair (affichées une seule fois). */
+export async function regenerateAccountKeys(uid: string): Promise<string[]> {
+  const keys: string[] = [];
+  for (let i = 0; i < ACCOUNT_KEY_COUNT; i++) {
+    let raw = '';
+    /* Tirage sans biais : on écarte les octets qui fausseraient le modulo. */
+    while (raw.length < 12) {
+      for (const b of randomBytes(16)) {
+        if (b < 248 && raw.length < 12) raw += RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length];
+      }
+    }
+    keys.push(`${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8)}`);
+  }
+  await withTransaction(async (conn) => {
+    await conn.execute('DELETE FROM account_recovery_keys WHERE uid = ?', [uid]);
+    for (const key of keys) {
+      await conn.execute('INSERT IGNORE INTO account_recovery_keys (uid, key_hash) VALUES (?, ?)', [
+        uid,
+        hashAccountKey(uid, key),
+      ]);
+    }
+  });
+  return keys;
+}
+
+/* Consomme une clé (usage unique, atomique). */
+export async function consumeAccountKey(uid: string, key: string): Promise<boolean> {
+  if (!looksLikeAccountKey(key)) return false;
+  const result = await query<{ affectedRows: number }>(
+    'UPDATE account_recovery_keys SET used_at = ? WHERE uid = ? AND key_hash = ? AND used_at IS NULL',
+    [Date.now(), uid, hashAccountKey(uid, key)],
+  );
+  return result.affectedRows === 1;
+}
+
+export async function countAccountKeys(uid: string): Promise<number> {
+  const row = await getOne<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM account_recovery_keys WHERE uid = ? AND used_at IS NULL',
+    [uid],
+  );
+  return Number(row?.n ?? 0);
 }
 
 /* ── Tendances ──────────────────────────────────────────────────────────────── */
@@ -683,7 +690,7 @@ export async function deleteComment(commentId: number, postId: number, uid: stri
 export async function exportUserData(uid: string) {
   const [profile, posts, comments, likes, following, followers, notifications, blocks, sessions] = await Promise.all([
     getOne<Record<string, unknown>>(
-      'SELECT uid, pseudo, email, displayName, avatar, banner, bio, location, website, verified, emailVerified, totp_enabled, createdAt FROM users WHERE uid = ?',
+      'SELECT uid, pseudo, displayName, avatar, banner, bio, location, website, verified, totp_enabled, createdAt FROM users WHERE uid = ?',
       [uid],
     ),
     query<unknown[]>(
@@ -743,8 +750,8 @@ export async function deleteAccount(uid: string) {
     ]) {
       await conn.execute(sql, [uid, uid]);
     }
-    await conn.execute('DELETE FROM auth_tokens WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+    await conn.execute('DELETE FROM account_recovery_keys WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM push_subscriptions WHERE uid = ?', [uid]);
     await conn.execute(

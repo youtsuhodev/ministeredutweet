@@ -21,8 +21,6 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.ResetPasswordPage })));
-const VerifyEmailPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.VerifyEmailPage })));
 
 function Loading() {
   return (
@@ -65,8 +63,6 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={publicPage(<LoginPage />)} />
       <Route path="/forgot-password" element={publicPage(<ForgotPasswordPage />)} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/legal/:slug" element={<LegalPage />} />
       <Route path="/" element={protectedPage(<FeedPage />)} />
       <Route path="/explore" element={protectedPage(<ExplorePage />)} />

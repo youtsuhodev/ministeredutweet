@@ -1,12 +1,10 @@
 import type { CookieOptions, NextFunction, Request, Response } from 'express';
 import { getOne, query } from '../config/database.js';
-import { isMailEnabled } from '../services/mailer.js';
 import { hashSessionId } from '../utils/crypto.js';
 
 export interface AuthUser {
   uid: string;
   pseudo: string;
-  email: string;
   displayName: string | null;
   avatar: string | null;
   banner: string | null;
@@ -14,7 +12,8 @@ export interface AuthUser {
   location: string | null;
   website: string | null;
   verified: number;
-  emailVerified: number;
+  recovery_ack: number;
+  legacy_notice: number;
   totp_enabled: number;
   createdAt: number;
   role: string;
@@ -95,8 +94,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const sessionId = hashSessionId(rawSession);
     /* Une seule requête pour la session et l'utilisateur (avant : deux allers-retours par appel d'API). */
     const row = await getOne<AuthUser & { expires_at: number }>(
-      `SELECT s.expires_at, u.uid, u.pseudo, u.email, u.displayName, u.avatar, u.banner, u.bio,
-              u.location, u.website, u.verified, u.emailVerified, u.totp_enabled, u.createdAt,
+      `SELECT s.expires_at, u.uid, u.pseudo, u.displayName, u.avatar, u.banner, u.bio,
+              u.location, u.website, u.verified, u.recovery_ack, u.legacy_notice, u.totp_enabled, u.createdAt,
               u.role, u.status, u.suspended_until, u.status_reason
        FROM sessions s JOIN users u ON u.uid = s.uid
        WHERE s.id = ?`,
@@ -162,16 +161,4 @@ export function requireRole(minimum: 'moderator' | 'admin') {
     }
     next();
   };
-}
-
-/* Quand l'envoi d'e-mails est configuré, publier exige une adresse confirmée (limite les comptes jetables). */
-export function requireVerifiedEmail(req: Request, res: Response, next: NextFunction): void {
-  if (isMailEnabled() && !currentUser(req).emailVerified) {
-    res.status(403).json({
-      error: 'Confirme ton adresse e-mail pour publier : un lien t’a été envoyé à l’inscription.',
-      code: 'EMAIL_NOT_VERIFIED',
-    });
-    return;
-  }
-  next();
 }

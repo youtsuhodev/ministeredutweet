@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { patchRouter } from '../middleware/asyncHandler.js';
-import { authMiddleware, currentUser, requireVerifiedEmail } from '../middleware/auth.js';
+import { authMiddleware, currentUser } from '../middleware/auth.js';
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import { notifyIndexNow, publicPostPath } from '../services/indexnow.js';
 import { fetchPosts, filters } from '../services/postQuery.js';
@@ -112,7 +112,7 @@ router.get('/feed', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, res) => {
+router.post('/', authMiddleware, postLimiter, async (req, res) => {
   try {
     const { text, image, video, audio, audioDuration } = req.body ?? {};
     /* Opt-in : un post n'est public (page indexable) que si l'auteur le demande explicitement. */
@@ -162,7 +162,7 @@ router.post('/', authMiddleware, requireVerifiedEmail, postLimiter, async (req, 
 });
 
 /* Modification du texte d'un de ses posts (le média ne change pas). Les mentions ajoutées sont notifiées. */
-router.put('/:id', authMiddleware, requireVerifiedEmail, editLimiter, async (req, res) => {
+router.put('/:id', authMiddleware, editLimiter, async (req, res) => {
   try {
     const id = parseId(req.params.id);
     if (!id) return res.status(404).json({ error: 'Post introuvable' });
@@ -218,7 +218,7 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
 });
 
 /* Rend un de ses posts public (page indexable, visible sans connexion) ou le repasse en privé. */
-router.put('/:id/visibility', authMiddleware, requireVerifiedEmail, editLimiter, async (req, res) => {
+router.put('/:id/visibility', authMiddleware, editLimiter, async (req, res) => {
   try {
     const id = parseId(req.params.id);
     if (!id) return res.status(404).json({ error: 'Post introuvable' });
@@ -261,7 +261,7 @@ router.post('/:id/like', authMiddleware, likeLimiter, async (req, res) => {
   }
 });
 
-router.post('/:id/repost', authMiddleware, requireVerifiedEmail, repostLimiter, async (req, res) => {
+router.post('/:id/repost', authMiddleware, repostLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);
@@ -301,7 +301,7 @@ const toCommentDto = (c: CommentRow) => ({
   user: { uid: c.uid, pseudo: c.pseudo, displayName: c.displayName, avatar: c.avatar, verified: !!c.verified },
 });
 
-router.post('/:id/comment', authMiddleware, requireVerifiedEmail, commentLimiter, async (req, res) => {
+router.post('/:id/comment', authMiddleware, commentLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
     const post = await resolveSourcePost(req.params.id);

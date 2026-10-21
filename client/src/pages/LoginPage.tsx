@@ -12,7 +12,6 @@ export default function LoginPage() {
   const { refresh } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -38,9 +37,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (mode === 'login') {
-        await login(email, password, needs2fa ? code : undefined, captchaToken || undefined);
+        await login(pseudo, password, needs2fa ? code : undefined, captchaToken || undefined);
       } else {
-        await register(pseudo, email, password, captchaToken || undefined, ageOk);
+        await register(pseudo, password, captchaToken || undefined, ageOk);
       }
       const me = await refresh();
       if (!me) {
@@ -89,40 +88,23 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'register' && (
-            <div>
-              <label htmlFor="pseudo" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                Pseudo
-              </label>
-              <input
-                id="pseudo"
-                type="text"
-                value={pseudo}
-                onChange={(e) => setPseudo(e.target.value)}
-                className={inputClass}
-                placeholder="ton_pseudo"
-                autoComplete="username"
-                required
-                minLength={3}
-                maxLength={30}
-                pattern="[a-zA-Z0-9_]+"
-                title="Lettres, chiffres et underscores uniquement"
-              />
-            </div>
-          )}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-              E-mail
+            <label htmlFor="pseudo" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+              Pseudo
             </label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="pseudo"
+              type="text"
+              value={pseudo}
+              onChange={(e) => setPseudo(e.target.value)}
               className={inputClass}
-              placeholder="toi@exemple.fr"
-              autoComplete="email"
+              placeholder="ton_pseudo"
+              autoComplete="username"
               required
+              minLength={3}
+              maxLength={30}
+              pattern="[a-zA-Z0-9_]+"
+              title="Lettres, chiffres et underscores uniquement"
             />
           </div>
           <div>
@@ -141,7 +123,12 @@ export default function LoginPage() {
               minLength={8}
               maxLength={72}
             />
-            {mode === 'register' && <p className="text-xs text-[var(--text-secondary)] mt-1">8 caractères minimum.</p>}
+            {mode === 'register' && (
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                8 caractères minimum. Pas d’e-mail : après l’inscription, tu pourras télécharger des clés de récupération
+                pour retrouver ton compte si tu oublies ton mot de passe.
+              </p>
+            )}
           </div>
 
           {needs2fa && (

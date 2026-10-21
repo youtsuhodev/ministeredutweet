@@ -47,7 +47,6 @@ export function parseId(raw: unknown): number | null {
   const n = Number(raw);
   return Number.isSafeInteger(n) && n > 0 ? n : null;
 }
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /* Une URL de média n'est acceptée que si elle pointe vers un fichier uploadé chez nous. */
 export function isSafeUploadPath(value: unknown): value is string {

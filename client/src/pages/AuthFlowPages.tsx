@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { type ReactNode, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Captcha, { useCaptchaEnabled } from '../components/Captcha';
 import { api, errorMessage } from '../services/api';
 
@@ -25,9 +25,12 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/* Mot de passe oublié : pseudo + une clé de récupération + nouveau mot de passe (il n'y a pas d'e-mail). */
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [pseudo, setPseudo] = useState('');
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const [password, setPassword] = useState('');
+  const [keysLeft, setKeysLeft] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const captchaEnabled = useCaptchaEnabled();
@@ -43,8 +46,13 @@ export function ForgotPasswordPage() {
     }
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email, captchaToken: captchaToken || undefined });
-      setSent(true);
+      const r = await api.post<{ keysLeft: number }>('/auth/recover', {
+        pseudo,
+        key: recoveryKey,
+        password,
+        captchaToken: captchaToken || undefined,
+      });
+      setKeysLeft(r.keysLeft);
     } catch (err) {
       setError(errorMessage(err));
       setCaptchaToken('');
@@ -55,15 +63,22 @@ export function ForgotPasswordPage() {
 
   return (
     <Frame title="Mot de passe oublié">
-      {sent ? (
-        <p className="text-[var(--text-primary)] text-center">
-          Si un compte existe pour <strong>{email}</strong>, un e-mail avec un lien de réinitialisation vient d'être
-          envoyé (valable 1 heure).
-        </p>
+      {keysLeft !== null ? (
+        <div className="space-y-3 text-center text-[var(--text-primary)]">
+          <p>
+            Mot de passe mis à jour. Tu peux maintenant <Link to="/auth">te connecter</Link>.
+          </p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            {keysLeft > 0
+              ? `Il te reste ${keysLeft} clé${keysLeft > 1 ? 's' : ''} de récupération. Tu pourras en générer de nouvelles dans les paramètres.`
+              : 'Tu n’as plus de clé de récupération : génères-en de nouvelles dans les paramètres dès ta connexion.'}
+          </p>
+        </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <p className="text-sm text-[var(--text-secondary)]">
-            Indique l'adresse e-mail de ton compte : on t'envoie un lien pour choisir un nouveau mot de passe.
+            Saisis ton pseudo et l’une de tes clés de récupération (chacune ne sert qu’une fois), puis choisis un nouveau
+            mot de passe. Sans clé, le compte ne peut pas être récupéré automatiquement.
           </p>
           {error && (
             <div role="alert" className="p-3 rounded-lg bg-[var(--danger)]/10 text-[var(--danger)] text-sm">
@@ -71,61 +86,30 @@ export function ForgotPasswordPage() {
             </div>
           )}
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={pseudo}
+            onChange={(e) => setPseudo(e.target.value)}
             className={inputClass}
-            placeholder="toi@exemple.fr"
-            aria-label="Adresse e-mail"
-            autoComplete="email"
+            placeholder="ton_pseudo"
+            aria-label="Pseudo"
+            autoComplete="username"
+            minLength={3}
+            maxLength={30}
+            pattern="[a-zA-Z0-9_]+"
             required
           />
-          <Captcha key={captchaKey} onToken={setCaptchaToken} onError={setError} />
-          <button type="submit" disabled={loading} className={buttonClass}>
-            {loading ? '…' : 'Envoyer le lien'}
-          </button>
-        </form>
-      )}
-    </Frame>
-  );
-}
-
-export function ResetPasswordPage() {
-  const [params] = useSearchParams();
-  const token = params.get('token') ?? '';
-  const [password, setPassword] = useState('');
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      await api.post('/auth/reset-password', { token, password });
-      setDone(true);
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-    setLoading(false);
-  };
-
-  return (
-    <Frame title="Nouveau mot de passe">
-      {done ? (
-        <p className="text-center text-[var(--text-primary)]">
-          Mot de passe mis à jour. Tu peux maintenant <Link to="/auth">te connecter</Link>.
-        </p>
-      ) : !token ? (
-        <p className="text-center text-[var(--text-secondary)]">Lien invalide.</p>
-      ) : (
-        <form onSubmit={submit} className="space-y-4">
-          {error && (
-            <div role="alert" className="p-3 rounded-lg bg-[var(--danger)]/10 text-[var(--danger)] text-sm">
-              {error}
-            </div>
-          )}
+          <input
+            type="text"
+            value={recoveryKey}
+            onChange={(e) => setRecoveryKey(e.target.value.replace(/[^A-Za-z0-9-]/g, '').slice(0, 14))}
+            className={`${inputClass} font-mono`}
+            placeholder="ABCD-EFGH-JKMN"
+            aria-label="Clé de récupération"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            required
+          />
           <input
             type="password"
             value={password}
@@ -138,55 +122,12 @@ export function ResetPasswordPage() {
             maxLength={72}
             required
           />
+          <Captcha key={captchaKey} onToken={setCaptchaToken} onError={setError} />
           <button type="submit" disabled={loading} className={buttonClass}>
             {loading ? '…' : 'Changer le mot de passe'}
           </button>
         </form>
       )}
-    </Frame>
-  );
-}
-
-export function VerifyEmailPage() {
-  const [params] = useSearchParams();
-  const token = params.get('token') ?? '';
-  const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading');
-  const [message, setMessage] = useState('');
-  const [changed, setChanged] = useState(false);
-
-  useEffect(() => {
-    if (!token) {
-      setState('error');
-      setMessage('Lien invalide.');
-      return;
-    }
-    api
-      .post<{ changed?: string }>('/auth/verify-email', { token })
-      .then((r) => {
-        setChanged(r.changed === 'email');
-        setState('ok');
-      })
-      .catch((err) => {
-        setState('error');
-        setMessage(errorMessage(err));
-      });
-  }, [token]);
-
-  return (
-    <Frame title="Vérification de l'e-mail">
-      {state === 'loading' && (
-        <div className="flex justify-center">
-          <div className="spinner" />
-        </div>
-      )}
-      {state === 'ok' && (
-        <p className="text-center text-[var(--text-primary)]">
-          {changed
-            ? 'Ta nouvelle adresse e-mail est confirmée : utilise-la désormais pour te connecter.'
-            : 'Ton adresse e-mail est confirmée. Merci !'}
-        </p>
-      )}
-      {state === 'error' && <p className="text-center text-[var(--danger)]">{message}</p>}
     </Frame>
   );
 }
