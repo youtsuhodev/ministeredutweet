@@ -602,33 +602,44 @@ export async function getUnreadNotificationCount(uid: string) {
 
 /* ── Commentaires ───────────────────────────────────────────────────────────── */
 
-export async function createComment(postId: number, uid: string, text: string) {
-  const result = await query<{ insertId: number }>('INSERT INTO comments (post_id, uid, text) VALUES (?, ?, ?)', [
-    postId,
-    uid,
-    text,
-  ]);
+export async function createComment(postId: number, uid: string, text: string, parentId: number | null = null) {
+  const result = await query<{ insertId: number }>(
+    'INSERT INTO comments (post_id, parent_id, uid, text) VALUES (?, ?, ?, ?)',
+    [postId, parentId, uid, text],
+  );
   return result.insertId;
 }
 
+/* Commentaire d'un post (pour vérifier qu'on répond bien à un commentaire de CE post). */
+export async function findComment(commentId: number) {
+  return getOne<{ id: number; post_id: number; parent_id: number | null; uid: string }>(
+    'SELECT id, post_id, parent_id, uid FROM comments WHERE id = ?',
+    [commentId],
+  );
+}
+
+export interface CommentRow {
+  id: number;
+  parent_id: number | null;
+  text: string;
+  created_at: string;
+  uid: string;
+  pseudo: string;
+  displayName: string | null;
+  avatar: string | null;
+  verified: number;
+  reply_count: number;
+}
+
+/* Commentaires de premier niveau d'un post (avec le nombre de réponses de chacun). */
 export async function getComments(postId: number, viewerUid: string, limit = 50, offset = 0) {
   const lim = Math.max(1, Math.trunc(limit));
   const off = Math.max(0, Math.trunc(offset));
-  return query<
-    {
-      id: number;
-      text: string;
-      created_at: string;
-      uid: string;
-      pseudo: string;
-      displayName: string | null;
-      avatar: string | null;
-      verified: number;
-    }[]
-  >(
-    `SELECT c.id, c.text, c.created_at, u.uid, u.pseudo, u.displayName, u.avatar, u.verified
+  return query<CommentRow[]>(
+    `SELECT c.id, c.parent_id, c.text, c.created_at, u.uid, u.pseudo, u.displayName, u.avatar, u.verified,
+            (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) AS reply_count
      FROM comments c JOIN users u ON c.uid = u.uid
-     WHERE c.post_id = ? AND u.status <> 'banned'
+     WHERE c.post_id = ? AND c.parent_id IS NULL AND u.status <> 'banned'
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = c.uid) OR (b.blocker_uid = c.uid AND b.blocked_uid = ?))
      ORDER BY c.created_at ASC, c.id ASC
      LIMIT ${lim} OFFSET ${off}`,
@@ -636,16 +647,35 @@ export async function getComments(postId: number, viewerUid: string, limit = 50,
   );
 }
 
-export async function deleteComment(commentId: number, postId: number, uid: string): Promise<boolean> {
+/* Réponses à un commentaire, de la plus ancienne à la plus récente. */
+export async function getReplies(parentId: number, viewerUid: string, limit = 100, offset = 0) {
+  const lim = Math.max(1, Math.trunc(limit));
+  const off = Math.max(0, Math.trunc(offset));
+  return query<CommentRow[]>(
+    `SELECT c.id, c.parent_id, c.text, c.created_at, u.uid, u.pseudo, u.displayName, u.avatar, u.verified, 0 AS reply_count
+     FROM comments c JOIN users u ON c.uid = u.uid
+     WHERE c.parent_id = ? AND u.status <> 'banned'
+       AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_uid = ? AND b.blocked_uid = c.uid) OR (b.blocker_uid = c.uid AND b.blocked_uid = ?))
+     ORDER BY c.created_at ASC, c.id ASC
+     LIMIT ${lim} OFFSET ${off}`,
+    [parentId, viewerUid, viewerUid],
+  );
+}
+
+/* Supprime un commentaire (et ses réponses). Renvoie le nombre de commentaires supprimés, 0 si introuvable / interdit. */
+export async function deleteComment(commentId: number, postId: number, uid: string): Promise<number> {
   /* L'auteur du commentaire ou celui du post peut le supprimer. */
   const row = await getOne<{ id: number }>(
     `SELECT c.id FROM comments c JOIN posts p ON p.id = c.post_id
      WHERE c.id = ? AND c.post_id = ? AND (c.uid = ? OR p.uid = ?)`,
     [commentId, postId, uid, uid],
   );
-  if (!row) return false;
-  await query('DELETE FROM comments WHERE id = ?', [commentId]);
-  return true;
+  if (!row) return 0;
+  const result = await query<{ affectedRows: number }>('DELETE FROM comments WHERE id = ? OR parent_id = ?', [
+    commentId,
+    commentId,
+  ]);
+  return result.affectedRows;
 }
 
 /* ── RGPD : export & suppression ────────────────────────────────────────────── */
@@ -660,7 +690,7 @@ export async function exportUserData(uid: string) {
       'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at, edited_at FROM posts WHERE uid = ?',
       [uid],
     ),
-    query<unknown[]>('SELECT id, post_id, text, created_at FROM comments WHERE uid = ?', [uid]),
+    query<unknown[]>('SELECT id, post_id, parent_id, text, created_at FROM comments WHERE uid = ?', [uid]),
     query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
     query<unknown[]>(
       'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.followed_uid WHERE f.follower_uid = ?',
@@ -704,6 +734,8 @@ export async function deleteAccount(uid: string) {
     for (const sql of [
       'DELETE FROM notifications WHERE uid = ? OR actor_uid = ?',
       'DELETE FROM likes WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
+      /* Les réponses des autres aux commentaires du compte partent avec eux (pas de clé étrangère sur parent_id). */
+      'DELETE FROM comments WHERE parent_id IN (SELECT id FROM (SELECT id FROM comments WHERE uid = ?) AS mine) OR uid = ?',
       'DELETE FROM comments WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
       'DELETE FROM follows WHERE follower_uid = ? OR followed_uid = ?',
       'DELETE FROM blocks WHERE blocker_uid = ? OR blocked_uid = ?',

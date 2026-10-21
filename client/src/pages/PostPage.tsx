@@ -1,30 +1,20 @@
-import { Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import Avatar from '../components/Avatar';
+import CommentThread, { type CommentData } from '../components/CommentThread';
 import MentionTextarea from '../components/MentionTextarea';
 import PageHeader from '../components/PageHeader';
-import PostCard, { type Post, type PostUser } from '../components/PostCard';
-import RichText from '../components/RichText';
-import VerifiedBadge from '../components/VerifiedBadge';
+import PostCard, { type Post } from '../components/PostCard';
 import { useAuth } from '../hooks/useAuth';
-import { timeAgo } from '../lib/time';
 import { api, errorMessage } from '../services/api';
-
-interface Comment {
-  id: number;
-  text: string;
-  createdAt: string;
-  user: PostUser;
-}
 
 export default function PostPage() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: me } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<CommentData[]>([]);
   const [status, setStatus] = useState<'loading' | 'ok' | 'missing'>('loading');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -32,7 +22,7 @@ export default function PostPage() {
 
   const loadComments = useCallback(async () => {
     try {
-      setComments(await api.get<Comment[]>(`/posts/${id}/comments`));
+      setComments(await api.get<CommentData[]>(`/posts/${id}/comments`));
     } catch {
       setComments([]);
     }
@@ -69,17 +59,6 @@ export default function PostPage() {
       setError(errorMessage(err));
     }
     setSending(false);
-  };
-
-  const removeComment = async (commentId: number) => {
-    if (!window.confirm('Supprimer ce commentaire ?')) return;
-    try {
-      await api.del(`/posts/${id}/comments/${commentId}`);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      setPost((p) => (p ? { ...p, commentsCount: Math.max(0, p.commentsCount - 1) } : p));
-    } catch (err) {
-      setError(errorMessage(err));
-    }
   };
 
   return (
@@ -136,37 +115,16 @@ export default function PostPage() {
             <p className="text-center py-10 text-[var(--text-secondary)]">Aucune réponse pour l'instant.</p>
           )}
           {comments.map((c) => (
-            <div key={c.id} className="flex gap-3 px-4 py-3 border-b border-[var(--border-color)]">
-              <Link to={`/${c.user.pseudo}`}>
-                <Avatar src={c.user.avatar} name={c.user.pseudo} />
-              </Link>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Link
-                    to={`/${c.user.pseudo}`}
-                    className="font-bold text-[var(--text-primary)] truncate hover:underline"
-                  >
-                    {c.user.displayName || c.user.pseudo}
-                  </Link>
-                  {c.user.verified && <VerifiedBadge />}
-                  <span className="text-sm text-[var(--text-secondary)] truncate">@{c.user.pseudo}</span>
-                  <span className="text-sm text-[var(--text-secondary)]">· {timeAgo(c.createdAt)}</span>
-                  {(me?.uid === c.user.uid || me?.uid === post.user.uid) && (
-                    <button
-                      type="button"
-                      onClick={() => removeComment(c.id)}
-                      aria-label="Supprimer le commentaire"
-                      className="ml-auto p-1.5 rounded-full text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                <p className="text-[15px] text-[var(--text-primary)] whitespace-pre-wrap break-words mt-0.5">
-                  <RichText text={c.text} />
-                </p>
-              </div>
-            </div>
+            <CommentThread
+              key={c.id}
+              comment={c}
+              postId={id}
+              postAuthorUid={post.user.uid}
+              onCountChange={(delta) =>
+                setPost((p) => (p ? { ...p, commentsCount: Math.max(0, p.commentsCount + delta) } : p))
+              }
+              onRemoved={(commentId) => setComments((prev) => prev.filter((x) => x.id !== commentId))}
+            />
           ))}
         </>
       )}

@@ -174,6 +174,7 @@ const ACTION_TEXT: Record<string, string> = {
   like: 'a aimé ton post',
   repost: 'a reposté ton post',
   comment: 'a répondu à ton post',
+  reply: 'a répondu à ton commentaire',
   mention: "t'a mentionné",
 };
 

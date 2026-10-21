@@ -27,6 +27,7 @@ const MESSAGES: Record<string, string> = {
   like: 'a aimé ton post',
   repost: 'a reposté ton post',
   comment: 'a répondu à ton post',
+  reply: 'a répondu à ton commentaire',
   mention: "t'a mentionné",
 };
 
@@ -40,6 +41,7 @@ function Icon({ type }: { type: string }) {
     case 'repost':
       return <Repeat2 className={`${cls} text-[var(--repost-color)]`} />;
     case 'comment':
+    case 'reply':
       return <MessageCircle className={`${cls} text-[var(--accent)]`} />;
     case 'moderation':
       return <ShieldAlert className={`${cls} text-[var(--danger)]`} />;
@@ -78,7 +80,7 @@ export default function NotificationsPage() {
   }, [load]);
 
   const filtered = notifications.filter((n) => {
-    if (tab === 'mentions') return n.type === 'mention' || n.type === 'comment';
+    if (tab === 'mentions') return n.type === 'mention' || n.type === 'comment' || n.type === 'reply';
     if (tab === 'follows') return n.type === 'follow';
     if (tab === 'activity') return n.type === 'like' || n.type === 'repost';
     return true;

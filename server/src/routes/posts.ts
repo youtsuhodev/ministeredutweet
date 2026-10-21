@@ -8,6 +8,7 @@ import { getPostStats, recordViews, viewerHash } from '../services/postViews.js'
 import { setPostPublic } from '../services/publicPosts.js';
 import { pushNewPost } from '../services/pushBroadcast.js';
 import {
+  type CommentRow,
   createComment,
   createNotification,
   createPost,
@@ -15,8 +16,10 @@ import {
   deleteComment,
   deletePost,
   extractMentions,
+  findComment,
   findPostById,
   getComments,
+  getReplies,
   isBlockedEitherWay,
   notifyMentions,
   REPORT_CATEGORIES,
@@ -289,6 +292,15 @@ router.post('/:id/report', authMiddleware, reportLimiter, async (req, res) => {
   }
 });
 
+const toCommentDto = (c: CommentRow) => ({
+  id: c.id,
+  parentId: c.parent_id,
+  text: c.text,
+  createdAt: c.created_at,
+  replyCount: Number(c.reply_count),
+  user: { uid: c.uid, pseudo: c.pseudo, displayName: c.displayName, avatar: c.avatar, verified: !!c.verified },
+});
+
 router.post('/:id/comment', authMiddleware, requireVerifiedEmail, commentLimiter, async (req, res) => {
   try {
     const uid = currentUser(req).uid;
@@ -298,10 +310,26 @@ router.post('/:id/comment', authMiddleware, requireVerifiedEmail, commentLimiter
     if (!text || text.length > 280) {
       return res.status(400).json({ error: 'Commentaire invalide (1 à 280 caractères)' });
     }
-    const commentId = await createComment(post.id, uid, text);
-    await createNotification(post.uid, 'comment', uid, post.id);
-    await notifyMentions(text, uid, post.id, [post.uid]);
-    res.json({ id: commentId });
+    /* Réponse à un commentaire : un seul niveau d'imbrication. Répondre à une réponse reste dans le même fil
+       (le commentaire racine), l'auteur visé est celui de la réponse. */
+    let rootId: number | null = null;
+    let replyToUid: string | null = null;
+    if (req.body?.parentId !== undefined && req.body?.parentId !== null) {
+      const parentId = parseId(req.body.parentId);
+      const parent = parentId ? await findComment(parentId) : null;
+      if (!parent || parent.post_id !== post.id || (await isBlockedEitherWay(uid, parent.uid))) {
+        return res.status(404).json({ error: 'Commentaire introuvable' });
+      }
+      rootId = parent.parent_id ?? parent.id;
+      replyToUid = parent.uid;
+    }
+    const commentId = await createComment(post.id, uid, text, rootId);
+    /* Chacun n'est prévenu qu'une fois : l'auteur du commentaire visé (réponse), sinon l'auteur du post (commentaire),
+       et les autres @mentions. */
+    if (replyToUid) await createNotification(replyToUid, 'reply', uid, post.id);
+    if (post.uid !== replyToUid) await createNotification(post.uid, 'comment', uid, post.id);
+    await notifyMentions(text, uid, post.id, [post.uid, ...(replyToUid ? [replyToUid] : [])]);
+    res.json({ id: commentId, parentId: rootId });
   } catch (err) {
     console.error('[POSTS] Comment error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -318,16 +346,31 @@ router.get('/:id/comments', authMiddleware, async (req, res) => {
       toInt(req.query.limit, 50, 1, 100),
       toInt(req.query.offset, 0, 0, 100000),
     );
-    res.json(
-      rows.map((c) => ({
-        id: c.id,
-        text: c.text,
-        createdAt: c.created_at,
-        user: { uid: c.uid, pseudo: c.pseudo, displayName: c.displayName, avatar: c.avatar, verified: !!c.verified },
-      })),
-    );
+    res.json(rows.map(toCommentDto));
   } catch (err) {
     console.error('[POSTS] Comments error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/* Réponses à un commentaire de premier niveau de ce post. */
+router.get('/:id/comments/:commentId/replies', authMiddleware, async (req, res) => {
+  try {
+    const post = await resolveSourcePost(req.params.id);
+    const commentId = parseId(req.params.commentId);
+    const comment = commentId ? await findComment(commentId) : null;
+    if (!post || !comment || comment.post_id !== post.id || comment.parent_id !== null) {
+      return res.status(404).json({ error: 'Commentaire introuvable' });
+    }
+    const rows = await getReplies(
+      comment.id,
+      currentUser(req).uid,
+      toInt(req.query.limit, 100, 1, 200),
+      toInt(req.query.offset, 0, 0, 100000),
+    );
+    res.json(rows.map(toCommentDto));
+  } catch (err) {
+    console.error('[POSTS] Replies error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -337,9 +380,10 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
     const commentId = parseId(req.params.commentId);
     const postId = parseId(req.params.id);
     if (!commentId || !postId) return res.status(404).json({ error: 'Commentaire introuvable' });
-    const ok = await deleteComment(commentId, postId, currentUser(req).uid);
-    if (!ok) return res.status(404).json({ error: 'Commentaire introuvable' });
-    res.json({ ok: true });
+    /* `deleted` : nombre de commentaires retirés (le commentaire et ses réponses), pour le compteur affiché. */
+    const deleted = await deleteComment(commentId, postId, currentUser(req).uid);
+    if (deleted === 0) return res.status(404).json({ error: 'Commentaire introuvable' });
+    res.json({ ok: true, deleted });
   } catch (err) {
     console.error('[POSTS] Delete comment error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
