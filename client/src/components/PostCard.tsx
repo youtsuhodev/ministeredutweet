@@ -21,6 +21,7 @@ import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
 import MentionTextarea from './MentionTextarea';
 import ReportDialog from './ReportDialog';
+import LinkEmbeds from './LinkEmbeds';
 import RichText from './RichText';
 import StatsDialog from './StatsDialog';
 import VerifiedBadge from './VerifiedBadge';
@@ -451,6 +452,8 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               </p>
             )
           )}
+
+          {!editing && <LinkEmbeds text={text} />}
 
           {post.image && (
             <div className="mt-3 rounded-2xl overflow-hidden border border-[var(--border-color)]">

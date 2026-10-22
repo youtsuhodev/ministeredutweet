@@ -25,6 +25,7 @@ const PAGES: Record<string, { title: string; body: string[] }> = {
       'Les données du Ministère du vide sont hébergées en France et soumises au RGPD.',
       'Nous collectons uniquement ce qui est nécessaire : pseudo, mot de passe (stocké sous forme chiffrée irréversible), contenus que tu publies, abonnements, notifications et sessions de connexion.',
       'Nous ne revendons aucune donnée et n’affichons aucune publicité.',
+      'Liens sociaux : un lien YouTube, Vimeo, Spotify, SoundCloud, TikTok, X, Instagram ou Twitch peut s’afficher dans un post, mais seulement après ton clic. Rien n’est chargé chez ces services avant, et ton adresse IP ne leur est transmise qu’à ce moment-là.',
       'Compteur de vues : pour compter chaque personne une seule fois par post, nous conservons une empreinte irréversible de ton adresse IP (jamais l’adresse elle-même), associée au post vu et à la date de la première vue. Elle ne sert qu’à ce compteur et disparaît avec le post.',
       'Posts publics : si tu choisis de rendre un post public, ce post, ton pseudo et ton nom affiché sont visibles sans connexion et peuvent être référencés par des moteurs de recherche. Nous les prévenons quand tu le retires ou le supprimes, mais ils peuvent conserver une copie un certain temps, et des tiers peuvent avoir copié le contenu : réfléchis avant de publier. Les autres posts ne sont jamais exposés.',
       'Tes droits : tu peux exporter toutes tes données et supprimer définitivement ton compte depuis Paramètres → Confidentialité. Pour toute demande : ' +

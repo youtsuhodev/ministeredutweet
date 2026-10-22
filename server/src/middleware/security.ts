@@ -6,6 +6,19 @@ function wsOrigins(host: string | undefined): string {
   return `wss://${host} ws://${host}`;
 }
 
+/* Domaines autorisés à s'afficher dans une iframe (voir client/src/lib/embeds.ts). */
+const EMBED_FRAME_HOSTS = [
+  'https://www.youtube-nocookie.com',
+  'https://player.vimeo.com',
+  'https://open.spotify.com',
+  'https://w.soundcloud.com',
+  'https://www.tiktok.com',
+  'https://platform.twitter.com',
+  'https://www.instagram.com',
+  'https://player.twitch.tv',
+  'https://clips.twitch.tv',
+].join(' ');
+
 /* En-têtes de sécurité de base (sans dépendance). La CSP n'est posée qu'en production :
    en dev, Vite injecte des scripts inline pour le HMR. */
 export function securityHeaders(isProd: boolean) {
@@ -30,7 +43,8 @@ export function securityHeaders(isProd: boolean) {
           "media-src 'self' blob:",
           /* WebSocket de la messagerie (même origine) : certains navigateurs ne couvrent pas ws: avec 'self'. */
           `connect-src 'self' ${wsOrigins(req.get('host'))}`.trim(),
-          "frame-src 'none'",
+          /* Intégrations de liens sociaux : domaines précis uniquement (client/src/lib/embeds.ts), iframes chargées au clic. */
+          `frame-src ${EMBED_FRAME_HOSTS}`,
           "object-src 'none'",
           "base-uri 'self'",
           "frame-ancestors 'none'",
