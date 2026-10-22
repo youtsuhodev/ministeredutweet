@@ -45,7 +45,7 @@ interface Row {
 }
 
 const SELECT = `SELECT m.id, m.uid, m.body, m.created_at, m.deleted_at, u.pseudo, u.displayName, u.avatar, u.verified, u.role
-                FROM chat_messages m JOIN users u ON u.uid = m.uid`;
+                FROM chat_messages m JOIN users u ON u.uid = m.uid COLLATE utf8mb4_unicode_ci`;
 
 function toDto(r: Row): ChatMessageDto {
   const deleted = r.deleted_at != null;
@@ -73,7 +73,7 @@ export async function listChat(viewerUid: string, beforeId: number | null, limit
     `${SELECT}
      WHERE (? IS NULL OR m.id < ?)
        AND NOT EXISTS (SELECT 1 FROM blocks b
-                       WHERE (b.blocker_uid = ? AND b.blocked_uid = m.uid) OR (b.blocker_uid = m.uid AND b.blocked_uid = ?))
+                       WHERE (b.blocker_uid = ? AND b.blocked_uid = m.uid COLLATE utf8mb4_unicode_ci) OR (b.blocker_uid = m.uid COLLATE utf8mb4_unicode_ci AND b.blocked_uid = ?))
      ORDER BY m.id DESC LIMIT ${lim + 1}`,
     [beforeId, beforeId, viewerUid, viewerUid],
   );
