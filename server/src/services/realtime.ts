@@ -16,6 +16,8 @@ interface SocketState {
   /* L'onglet / la fenêtre est visible : inutile alors d'envoyer en plus une notification push. */
   visible: boolean;
   lastTypingAt: number;
+  /* Le salon public est ouvert dans cet onglet : seuls ces sockets reçoivent ses évènements. */
+  inChat: boolean;
 }
 
 const states = new WeakMap<WebSocket, SocketState>();
@@ -44,6 +46,42 @@ export function publishToUsers(uids: Iterable<string>, event: object): void {
       if (ws.readyState === WebSocket.OPEN) ws.send(payload);
     }
   }
+}
+
+/* Évènement du salon public, uniquement aux sockets qui l'ont ouvert (hors `excludeUids`, ex. comptes bloqués). */
+export function publishToChat(event: object, excludeUids?: ReadonlySet<string>): void {
+  const payload = JSON.stringify(event);
+  for (const [uid, sockets] of byUser) {
+    if (excludeUids?.has(uid)) continue;
+    for (const ws of sockets) {
+      if (ws.readyState === WebSocket.OPEN && states.get(ws)?.inChat) ws.send(payload);
+    }
+  }
+}
+
+/* Nombre de comptes (et non d'onglets) présents dans le salon. */
+export function chatOnlineCount(): number {
+  let n = 0;
+  for (const sockets of byUser.values()) {
+    for (const ws of sockets) {
+      if (ws.readyState === WebSocket.OPEN && states.get(ws)?.inChat) {
+        n++;
+        break;
+      }
+    }
+  }
+  return n;
+}
+
+/* Les arrivées/départs sont regroupés : au plus une diffusion du compteur toutes les 1,5 s. */
+let onlineTimer: NodeJS.Timeout | undefined;
+function scheduleChatOnline(): void {
+  if (onlineTimer) return;
+  onlineTimer = setTimeout(() => {
+    onlineTimer = undefined;
+    publishToChat({ type: 'chat_online', count: chatOnlineCount() });
+  }, 1500);
+  onlineTimer.unref();
 }
 
 export function isUserVisible(uid: string): boolean {
@@ -109,7 +147,7 @@ export function attachRealtime(server: Server, appOrigin: string): void {
   });
 
   function register(ws: WebSocket, uid: string, sessionId: string): void {
-    states.set(ws, { uid, sessionId, alive: true, visible: true, lastTypingAt: 0 });
+    states.set(ws, { uid, sessionId, alive: true, visible: true, lastTypingAt: 0, inChat: false });
     const set = byUser.get(uid) ?? new Set<WebSocket>();
     set.add(ws);
     byUser.set(uid, set);
@@ -130,6 +168,12 @@ export function attachRealtime(server: Server, appOrigin: string): void {
       if (!event || typeof event.type !== 'string') return;
       if (event.type === 'presence') {
         s.visible = event.visible === true;
+      } else if (event.type === 'chat_join' || event.type === 'chat_leave') {
+        const inChat = event.type === 'chat_join';
+        if (s.inChat !== inChat) {
+          s.inChat = inChat;
+          scheduleChatOnline();
+        }
       } else if (event.type === 'typing') {
         const now = Date.now();
         if (now - s.lastTypingAt < 2000) return; // un évènement « en train d'écrire » toutes les 2 s au plus
@@ -138,9 +182,11 @@ export function attachRealtime(server: Server, appOrigin: string): void {
       }
     });
     ws.on('close', () => {
+      const wasInChat = states.get(ws)?.inChat;
       const current = byUser.get(uid);
       current?.delete(ws);
       if (current && current.size === 0) byUser.delete(uid);
+      if (wasInChat) scheduleChatOnline();
     });
     ws.on('error', () => ws.terminate());
     ws.send(JSON.stringify({ type: 'ready' }));

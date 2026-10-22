@@ -1,4 +1,4 @@
-import { Bell, Home, Mail, Search, Settings, ShieldCheck, User } from 'lucide-react';
+import { Bell, Home, Mail, MessagesSquare, Search, Settings, ShieldCheck, User } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
@@ -11,12 +11,13 @@ export default function MobileNav() {
   const { unreadMessages } = useRealtime();
   const { pathname } = useLocation();
   /* Dans une conversation, la zone de saisie occupe le bas de l'écran (comme les messageries mobiles). */
-  if (!user || /^\/messages\/\d+/.test(pathname)) return null;
+  if (!user || /^\/messages\/\d+/.test(pathname) || pathname === '/chat') return null;
 
   const items = [
     { to: '/', icon: Home, label: 'Accueil', badge: 0 },
     { to: '/explore', icon: Search, label: 'Explorer', badge: 0 },
     { to: '/notifications', icon: Bell, label: 'Notifs', badge: unread },
+    { to: '/chat', icon: MessagesSquare, label: 'Salon', badge: 0 },
     { to: '/messages', icon: Mail, label: 'Messages', badge: unreadMessages },
     { to: `/${user.pseudo}`, icon: User, label: 'Profil', badge: 0 },
     { to: '/settings', icon: Settings, label: 'Réglages', badge: 0 },

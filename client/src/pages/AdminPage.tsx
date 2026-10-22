@@ -63,6 +63,7 @@ const categoryLabel = (id: string) => REPORT_CATEGORIES.find((c) => c.id === id)
 const ACTION_LABELS: Record<string, string> = {
   'report:dismiss': 'Signalement classé sans suite',
   'report:delete_post': 'Post supprimé',
+  delete_chat: 'Message du salon supprimé',
   'report:warn': 'Avertissement',
   'report:suspend': 'Suspension (signalement)',
   'report:ban': 'Bannissement (signalement)',

@@ -57,10 +57,13 @@ export async function findUserByUid(uid: string) {
 export async function createUser(uid: string, pseudo: string, passwordHash: string) {
   const now = Date.now();
   /* L'inscription n'est possible qu'après confirmation de l'âge minimum : on ne garde que la date de cette confirmation. */
-  await query(
-    'INSERT INTO users (uid, pseudo, passwordHash, createdAt, age_confirmed_at) VALUES (?, ?, ?, ?, ?)',
-    [uid, pseudo, passwordHash, now, now],
-  );
+  await query('INSERT INTO users (uid, pseudo, passwordHash, createdAt, age_confirmed_at) VALUES (?, ?, ?, ?, ?)', [
+    uid,
+    pseudo,
+    passwordHash,
+    now,
+    now,
+  ]);
 }
 
 const UPDATABLE_USER_FIELDS = new Set([
@@ -688,29 +691,31 @@ export async function deleteComment(commentId: number, postId: number, uid: stri
 /* ── RGPD : export & suppression ────────────────────────────────────────────── */
 
 export async function exportUserData(uid: string) {
-  const [profile, posts, comments, likes, following, followers, notifications, blocks, sessions] = await Promise.all([
-    getOne<Record<string, unknown>>(
-      'SELECT uid, pseudo, displayName, avatar, banner, bio, location, website, verified, totp_enabled, createdAt FROM users WHERE uid = ?',
-      [uid],
-    ),
-    query<unknown[]>(
-      'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at, edited_at FROM posts WHERE uid = ?',
-      [uid],
-    ),
-    query<unknown[]>('SELECT id, post_id, parent_id, text, created_at FROM comments WHERE uid = ?', [uid]),
-    query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
-    query<unknown[]>(
-      'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.followed_uid WHERE f.follower_uid = ?',
-      [uid],
-    ),
-    query<unknown[]>(
-      'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.follower_uid WHERE f.followed_uid = ?',
-      [uid],
-    ),
-    query<unknown[]>('SELECT type, actor_uid, post_id, created_at FROM notifications WHERE uid = ?', [uid]),
-    query<unknown[]>('SELECT blocked_uid, created_at FROM blocks WHERE blocker_uid = ?', [uid]),
-    query<unknown[]>('SELECT user_agent, created_at, expires_at FROM sessions WHERE uid = ?', [uid]),
-  ]);
+  const [profile, posts, comments, likes, following, followers, notifications, blocks, sessions, chatMessages] =
+    await Promise.all([
+      getOne<Record<string, unknown>>(
+        'SELECT uid, pseudo, displayName, avatar, banner, bio, location, website, verified, totp_enabled, createdAt FROM users WHERE uid = ?',
+        [uid],
+      ),
+      query<unknown[]>(
+        'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at, edited_at FROM posts WHERE uid = ?',
+        [uid],
+      ),
+      query<unknown[]>('SELECT id, post_id, parent_id, text, created_at FROM comments WHERE uid = ?', [uid]),
+      query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
+      query<unknown[]>(
+        'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.followed_uid WHERE f.follower_uid = ?',
+        [uid],
+      ),
+      query<unknown[]>(
+        'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.follower_uid WHERE f.followed_uid = ?',
+        [uid],
+      ),
+      query<unknown[]>('SELECT type, actor_uid, post_id, created_at FROM notifications WHERE uid = ?', [uid]),
+      query<unknown[]>('SELECT blocked_uid, created_at FROM blocks WHERE blocker_uid = ?', [uid]),
+      query<unknown[]>('SELECT user_agent, created_at, expires_at FROM sessions WHERE uid = ?', [uid]),
+      query<unknown[]>('SELECT id, body, created_at FROM chat_messages WHERE uid = ? AND deleted_at IS NULL', [uid]),
+    ]);
   return {
     exportedAt: new Date().toISOString(),
     profile,
@@ -722,6 +727,7 @@ export async function exportUserData(uid: string) {
     notifications,
     blocks,
     sessions,
+    chatMessages,
   };
 }
 
@@ -752,6 +758,7 @@ export async function deleteAccount(uid: string) {
     }
     await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM account_recovery_keys WHERE uid = ?', [uid]);
+    await conn.execute('DELETE FROM chat_messages WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM push_subscriptions WHERE uid = ?', [uid]);
     await conn.execute(

@@ -19,6 +19,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const FollowListPage = lazy(() => import('./pages/FollowListPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const PublicChatPage = lazy(() => import('./pages/PublicChatPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.ForgotPasswordPage })));
 
@@ -69,6 +70,7 @@ function AppRoutes() {
       <Route path="/tag/:tag" element={protectedPage(<TagPage />)} />
       <Route path="/post/:id" element={protectedPage(<PostPage />)} />
       <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />
+      <Route path="/chat" element={protectedPage(<PublicChatPage />)} />
       <Route path="/messages" element={protectedPage(<MessagesPage />)} />
       <Route path="/messages/:id" element={protectedPage(<ChatPage />)} />
       <Route path="/settings" element={protectedPage(<SettingsPage />)} />

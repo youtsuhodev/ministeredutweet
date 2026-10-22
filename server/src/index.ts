@@ -15,6 +15,7 @@ import { securityHeaders } from './middleware/security.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import captchaRoutes from './routes/captcha.js';
+import chatRoutes from './routes/chat.js';
 import messagesRoutes from './routes/messages.js';
 import notificationsRoutes from './routes/notifications.js';
 import postsRoutes from './routes/posts.js';
@@ -24,6 +25,7 @@ import { seoRouter, spaFallback } from './routes/seo.js';
 import socialRoutes from './routes/social.js';
 import trendsRoutes from './routes/trends.js';
 import uploadRoutes from './routes/upload.js';
+import { purgeOldChatMessages } from './services/chat.js';
 import { assertMessagesConfig } from './services/messageCrypto.js';
 import { startMessagingMaintenance } from './services/messages.js';
 import { attachRealtime } from './services/realtime.js';
@@ -120,6 +122,7 @@ app.use('/api/profiles', profilesRoutes);
 app.use('/api', socialRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/trends', trendsRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -190,6 +193,8 @@ async function start() {
     const maintenance = async () => {
       try {
         await purgeExpiredSessions();
+        const chatPurged = await purgeOldChatMessages();
+        if (chatPurged > 0) console.log(`[CHAT] ${chatPurged} message(s) du salon supprimé(s) (conservation dépassée)`);
       } catch (err) {
         console.error('[PURGE]', (err as Error).message);
       }

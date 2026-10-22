@@ -5,6 +5,7 @@ export const RESERVED_PSEUDOS = new Set([
   'explore',
   'notifications',
   'messages',
+  'chat',
   'ws',
   'settings',
   'post',

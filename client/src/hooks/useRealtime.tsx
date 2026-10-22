@@ -17,6 +17,8 @@ export type RealtimeEvent =
   | { type: 'read'; conversationId: number; uid: string; messageId: number }
   | { type: 'typing'; conversationId: number; uid: string }
   | { type: 'conversation'; conversationId: number };
+/* Les évènements du salon public (chat_message, chat_deleted, chat_online) sont lus directement par
+   pages/PublicChatPage.tsx : ils ne concernent pas la messagerie privée. */
 
 type Handler = (event: RealtimeEvent) => void;
 
