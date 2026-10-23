@@ -33,56 +33,53 @@ export default function MobileNav() {
 
   return (
     <>
-      {moreOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-[55] bg-black/30"
-          onClick={() => setMoreOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-      {moreOpen && (
-        <div
-          className="md:hidden fixed bottom-0 left-0 right-0 z-[60] rounded-t-2xl bg-[var(--bg-secondary)] border-t border-[var(--border-color)] pb-[env(safe-area-inset-bottom)]"
-          role="menu"
-          aria-label="Autres destinations"
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Menu</span>
-            <button
-              onClick={() => setMoreOpen(false)}
-              className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              aria-label="Fermer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <nav className="flex flex-col px-2 py-2">
-            {moreItems.map(({ to, icon: Icon, label, badge }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
-                onClick={() => setMoreOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors hover:no-underline ${
-                    isActive
-                      ? 'text-[var(--accent)] font-semibold bg-[var(--bg-tertiary)]'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`
-                }
-              >
-                <Icon className="w-5 h-5" />
-                <span className="flex-1">{label}</span>
-                {badge > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center">
-                    {badge > 99 ? '99+' : badge}
-                  </span>
-                )}
-              </NavLink>
-            ))}
-          </nav>
+      <div
+        className={`md:hidden fixed inset-0 z-[55] bg-black/30 transition-opacity duration-200 ${moreOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setMoreOpen(false)}
+        aria-hidden="true"
+      />
+      <div
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-[60] rounded-t-2xl bg-[var(--bg-secondary)] border-t border-[var(--border-color)] pb-[env(safe-area-inset-bottom)] transition-transform duration-250 ease-out ${moreOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        role="menu"
+        aria-label="Autres destinations"
+        aria-hidden={!moreOpen}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
+          <span className="text-sm font-semibold text-[var(--text-primary)]">Menu</span>
+          <button
+            onClick={() => setMoreOpen(false)}
+            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      )}
+        <nav className="flex flex-col px-2 py-2">
+          {moreItems.map(({ to, icon: Icon, label, badge }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              onClick={() => setMoreOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors hover:no-underline ${
+                  isActive
+                    ? 'text-[var(--accent)] font-semibold bg-[var(--bg-tertiary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`
+              }
+            >
+              <Icon className="w-5 h-5" />
+              <span className="flex-1">{label}</span>
+              {badge > 0 && (
+                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
       <nav
         aria-label="Navigation principale"
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-[var(--border-color)] bg-[var(--bg-secondary)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
