@@ -2,6 +2,7 @@ import { useState } from 'react';
 import AppShell from '../components/AppShell';
 import ComposeBox from '../components/ComposeBox';
 import PageHeader, { Tabs } from '../components/PageHeader';
+import PullToRefresh from '../components/PullToRefresh';
 import type { Post } from '../components/PostCard';
 import PostList from '../components/PostList';
 import { usePaged } from '../hooks/usePaged';
@@ -20,26 +21,28 @@ export default function FeedPage() {
         <Tabs tabs={TABS} value={tab} onChange={setTab} labels={LABELS} />
       </PageHeader>
 
-      <ComposeBox onPosted={feed.reload} />
+      <PullToRefresh onRefresh={feed.reload}>
+        <ComposeBox onPosted={feed.reload} />
 
-      <PostList
-        posts={feed.items}
-        loading={feed.loading}
-        loadingMore={feed.loadingMore}
-        hasMore={feed.hasMore}
-        error={feed.error}
-        emptyText={
-          tab === 'following'
-            ? "Rien à voir pour l'instant : abonne-toi à des comptes pour remplir ce fil."
-            : 'Aucun post pour le moment. Sois le premier à publier !'
-        }
-        onLoadMore={feed.loadMore}
-        onRetry={feed.reload}
-        onDelete={(id) => feed.setItems((prev) => prev.filter((p) => p.feedId !== id))}
-        onBlocked={(uid) =>
-          feed.setItems((prev) => prev.filter((p) => p.user.uid !== uid && p.repostedBy?.uid !== uid))
-        }
-      />
+        <PostList
+          posts={feed.items}
+          loading={feed.loading}
+          loadingMore={feed.loadingMore}
+          hasMore={feed.hasMore}
+          error={feed.error}
+          emptyText={
+            tab === 'following'
+              ? "Rien à voir pour l'instant : abonne-toi à des comptes pour remplir ce fil."
+              : 'Aucun post pour le moment. Sois le premier à publier !'
+          }
+          onLoadMore={feed.loadMore}
+          onRetry={feed.reload}
+          onDelete={(id) => feed.setItems((prev) => prev.filter((p) => p.feedId !== id))}
+          onBlocked={(uid) =>
+            feed.setItems((prev) => prev.filter((p) => p.user.uid !== uid && p.repostedBy?.uid !== uid))
+          }
+        />
+      </PullToRefresh>
     </AppShell>
   );
 }
