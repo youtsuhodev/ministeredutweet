@@ -15,11 +15,13 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useLongPress } from '../hooks/useLongPress';
 import { fullDate, timeAgo } from '../lib/time';
 import { formatCount, onViewCounted, trackView } from '../lib/views';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
 import MentionTextarea from './MentionTextarea';
+import PostQuickMenu from './PostQuickMenu';
 import ReportDialog from './ReportDialog';
 import LinkEmbeds from './LinkEmbeds';
 import RichText from './RichText';
@@ -106,6 +108,9 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+
+  const longPress = useLongPress(() => setQuickMenuOpen(true));
 
   useEffect(() => onViewCounted(post.id, () => setViews((v) => v + 1)), [post.id]);
 
@@ -267,6 +272,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
 
   const openPost = (e: React.MouseEvent) => {
     if (!linkToPost) return;
+    if (longPress.wasLongPress()) return;
     if ((e.target as HTMLElement).closest('a, button, video, audio, input, textarea, [data-no-open]')) return;
     navigate(`/post/${post.id}`);
   };
@@ -275,6 +281,12 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
     <article
       ref={cardRef}
       onClick={openPost}
+      onTouchStart={longPress.onTouchStart}
+      onTouchEnd={longPress.onTouchEnd}
+      onTouchMove={longPress.onTouchMove}
+      onMouseDown={longPress.onMouseDown}
+      onMouseUp={longPress.onMouseUp}
+      onMouseLeave={longPress.onMouseLeave}
       className={`px-4 pt-2 pb-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]/40 transition-colors ${linkToPost ? 'cursor-pointer' : ''}`}
     >
       {post.repostedBy && (
@@ -573,6 +585,23 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
             setReporting(false);
             flash('Merci, le post a été signalé');
           }}
+        />
+      )}
+      {quickMenuOpen && (
+        <PostQuickMenu
+          onCopyLink={async () => {
+            setQuickMenuOpen(false);
+            flash((await copyToClipboard(postUrl(post.id, isPublic))) ? 'Lien copié' : 'Copie impossible');
+          }}
+          onReport={() => {
+            setQuickMenuOpen(false);
+            setReporting(true);
+          }}
+          onHide={() => {
+            setQuickMenuOpen(false);
+            onDelete?.(post.feedId);
+          }}
+          onClose={() => setQuickMenuOpen(false)}
         />
       )}
     </article>
