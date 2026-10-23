@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Post } from './PostCard';
 import PostCard from './PostCard';
+import PostSkeleton from './PostSkeleton';
 
 interface PostListProps {
   posts: Post[];
@@ -44,8 +45,10 @@ export default function PostList({
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="spinner" />
+      <div aria-busy="true" aria-label="Chargement du fil">
+        {Array.from({ length: 5 }, (_, i) => (
+          <PostSkeleton key={i} />
+        ))}
       </div>
     );
   }
@@ -68,8 +71,8 @@ export default function PostList({
         <PostCard key={post.feedId} post={post} onDelete={onDelete} onBlocked={onBlocked} />
       ))}
       {hasMore && (
-        <div ref={sentinel} className="flex justify-center py-6">
-          {loadingMore ? <div className="spinner" /> : <span className="text-sm text-[var(--text-secondary)]">…</span>}
+        <div ref={sentinel} className="py-2">
+          {loadingMore ? <PostSkeleton /> : <div className="flex justify-center py-4"><span className="text-sm text-[var(--text-secondary)]">…</span></div>}
         </div>
       )}
     </>
