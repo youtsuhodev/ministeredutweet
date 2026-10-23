@@ -20,6 +20,7 @@ import { fullDate, timeAgo } from '../lib/time';
 import { formatCount, onViewCounted, trackView } from '../lib/views';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
+import LazyImage from './LazyImage';
 import MentionTextarea from './MentionTextarea';
 import PostQuickMenu from './PostQuickMenu';
 import ReportDialog from './ReportDialog';
@@ -469,11 +470,10 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
 
           {post.image && (
             <div className="mt-3 rounded-2xl overflow-hidden border border-[var(--border-color)]">
-              <img
+              <LazyImage
                 src={post.image}
                 alt="Pièce jointe du post"
-                loading="lazy"
-                className="w-full max-h-[500px] object-cover"
+                className="max-h-[500px] object-cover"
               />
             </div>
           )}
