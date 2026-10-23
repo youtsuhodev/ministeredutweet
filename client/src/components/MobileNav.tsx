@@ -35,14 +35,14 @@ export default function MobileNav() {
     <>
       {moreOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/30"
+          className="md:hidden fixed inset-0 z-[55] bg-black/30"
           onClick={() => setMoreOpen(false)}
           aria-hidden="true"
         />
       )}
       {moreOpen && (
         <div
-          className="md:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-[var(--bg-secondary)] border-t border-[var(--border-color)] pb-[env(safe-area-inset-bottom)]"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-[60] rounded-t-2xl bg-[var(--bg-secondary)] border-t border-[var(--border-color)] pb-[env(safe-area-inset-bottom)]"
           role="menu"
           aria-label="Autres destinations"
         >
