@@ -39,7 +39,7 @@ export default function PageHeader({ title, subtitle, back = '/', children }: Pa
           >
             <Bell className="w-5 h-5 text-[var(--text-primary)]" />
             {unread > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
+              <span role="status" aria-live="polite" className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
                 {unread > 99 ? '99+' : unread}
               </span>
             )}

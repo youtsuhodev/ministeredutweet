@@ -72,7 +72,7 @@ export default function MobileNav() {
               <Icon className="w-5 h-5" />
               <span className="flex-1">{label}</span>
               {badge > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center">
+                <span role="status" aria-live="polite" className="min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center">
                   {badge > 99 ? '99+' : badge}
                 </span>
               )}
@@ -102,7 +102,7 @@ export default function MobileNav() {
                 <span className="relative">
                   <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
                   {badge > 0 && (
-                    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
+                    <span role="status" aria-live="polite" className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
@@ -141,7 +141,7 @@ export default function MobileNav() {
                 <span className="relative">
                   <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
                   {badge > 0 && (
-                    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
+                    <span role="status" aria-live="polite" className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
