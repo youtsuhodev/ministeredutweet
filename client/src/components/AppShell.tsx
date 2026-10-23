@@ -1,4 +1,3 @@
-import { Feather } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNotificationAlerts } from '../hooks/useNotificationAlerts';
@@ -21,11 +20,16 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
   const { user } = useAuth();
   const [showCompose, setShowCompose] = useState(false);
 
-  /* Push : rattache l'appareil au compte connecté ; Electron : notifications locales. */
   useNotificationAlerts(!!user);
   useEffect(() => {
     if (user) void syncPushSubscription(user.uid);
   }, [user]);
+
+  useEffect(() => {
+    const handler = () => setShowCompose(true);
+    window.addEventListener('open-compose', handler);
+    return () => window.removeEventListener('open-compose', handler);
+  }, []);
 
   return (
     <div
@@ -48,17 +52,6 @@ export default function AppShell({ children, onPosted, chat = false }: AppShellP
       </main>
 
       <RightSidebar />
-
-      {!chat && (
-        <button
-          type="button"
-          onClick={() => setShowCompose(true)}
-          aria-label="Nouveau post"
-          className="md:hidden fixed right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center"
-        >
-          <Feather className="w-6 h-6" />
-        </button>
-      )}
 
       {showCompose && <ComposeModal onClose={() => setShowCompose(false)} onPosted={() => onPosted?.()} />}
 

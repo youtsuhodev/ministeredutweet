@@ -1,24 +1,24 @@
 import { useState } from 'react';
-import { Bell, Home, Mail, MessagesSquare, MoreHorizontal, Search, Settings, ShieldCheck, User, X } from 'lucide-react';
+import { Feather, Home, Mail, MessagesSquare, MoreHorizontal, Search, Settings, ShieldCheck, User, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
-import { useUnread } from '../hooks/useUnread';
 
 /** Barre de navigation basse (mobile, < 768px). Remplace la colonne de gauche, masquée. */
 export default function MobileNav() {
   const { user } = useAuth();
-  const unread = useUnread(!!user);
   const { unreadMessages } = useRealtime();
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
   if (!user || /^\/messages\/\d+/.test(pathname) || pathname === '/chat') return null;
 
-  const items = [
+  const itemsLeft = [
     { to: '/', icon: Home, label: 'Accueil', badge: 0 },
     { to: '/explore', icon: Search, label: 'Explorer', badge: 0 },
-    { to: '/notifications', icon: Bell, label: 'Notifs', badge: unread },
+  ];
+
+  const itemsRight = [
     { to: '/messages', icon: Mail, label: 'Messages', badge: unreadMessages },
     { to: `/${user.pseudo}`, icon: User, label: 'Profil', badge: 0 },
   ];
@@ -87,7 +87,46 @@ export default function MobileNav() {
         aria-label="Navigation principale"
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-[var(--border-color)] bg-[var(--bg-secondary)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
       >
-        {items.map(({ to, icon: Icon, label, badge }) => (
+        {itemsLeft.map(({ to, icon: Icon, label, badge }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              `flex flex-1 min-w-0 flex-col items-center gap-1 px-1 py-2.5 text-[10px] transition-colors hover:no-underline ${
+                isActive
+                  ? 'text-[var(--accent)] font-bold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span className="relative">
+                  <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
+                  {badge > 0 && (
+                    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
+                </span>
+                <span className="truncate max-w-full">{label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-compose'))}
+          aria-label="Nouveau post"
+          className="flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5"
+        >
+          <span className="w-10 h-10 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center shadow-md -mt-3">
+            <Feather className="w-5 h-5" />
+          </span>
+          <span className="text-[10px] text-[var(--text-secondary)]">Publier</span>
+        </button>
+        {itemsRight.map(({ to, icon: Icon, label, badge }) => (
           <NavLink
             key={to}
             to={to}
