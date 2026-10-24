@@ -51,10 +51,12 @@ export default function OnboardingWizard() {
   const loadSuggestions = async () => {
     setStep(1);
     try {
-      const rows = await api.get<Suggestion[]>('/social/suggestions');
+      /* le router social est monté directement sous /api : /api/suggestions */
+      const rows = await api.get<Suggestion[]>('/suggestions');
       setSuggestions(rows);
-    } catch {
-      setSuggestions([]);
+    } catch (err) {
+      setError(errorMessage(err, 'Suggestions indisponibles'));
+      setStep(0);
     }
   };
 
