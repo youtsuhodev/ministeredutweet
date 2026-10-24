@@ -207,7 +207,17 @@ router.get('/me', authMiddleware, async (req, res) => {
     recoveryNoticePending: !user.recovery_ack,
     legacyNotice: !!user.legacy_notice,
     recoveryKeysLeft: await countAccountKeys(user.uid),
+    /* L'assistant d'onboarding s'affiche tant que le compte ne l'a pas terminé (nouveaux comptes). */
+    onboardingDone: !!user.onboarding_done,
   });
+});
+
+/* ── Onboarding ────────────────────────────────────────────────────────────── */
+
+/* La personne a terminé (ou fermé) l'assistant : il ne réapparaît plus, sur aucun appareil. */
+router.post('/onboarded', authMiddleware, authLimiter, async (req, res) => {
+  await updateUser(currentUser(req).uid, { onboarding_done: 1 });
+  res.json({ ok: true });
 });
 
 /* ── Mot de passe oublié : pseudo + clé de récupération ─────────────────────── */

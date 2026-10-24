@@ -1,6 +1,7 @@
 import { lazy, type ReactNode, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import MobileNav from './components/MobileNav';
+import OnboardingWizard from './components/OnboardingWizard';
 import PushPrompt from './components/PushPrompt';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { RealtimeProvider } from './hooks/useRealtime';
@@ -59,6 +60,15 @@ function usePresence() {
   }, [pathname]);
 }
 
+/* Assistant de bienvenue : montre le tutoriel aux nouveaux comptes (onboardingDone = false).
+   Passé par « Passer » ou terminé => /auth/onboarded est appelé et le compte ne le revoit plus. */
+function OnboardingGate() {
+  const { user, loading } = useAuth();
+  const { pathname } = useLocation();
+  if (loading || !user || user.onboardingDone || pathname === '/auth' || pathname === '/forgot-password') return null;
+  return <OnboardingWizard />;
+}
+
 function AppRoutes() {
   usePresence();
   return (
@@ -93,6 +103,7 @@ export default function App() {
           <RealtimeProvider>
             <Suspense fallback={<Loading />}>
               <AppRoutes />
+              <OnboardingGate />
               <MobileNav />
               <PushPrompt />
             </Suspense>

@@ -14,6 +14,7 @@ export interface AuthUser {
   verified: number;
   recovery_ack: number;
   legacy_notice: number;
+  onboarding_done: number;
   totp_enabled: number;
   createdAt: number;
   role: string;
@@ -95,7 +96,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     /* Une seule requête pour la session et l'utilisateur (avant : deux allers-retours par appel d'API). */
     const row = await getOne<AuthUser & { expires_at: number }>(
       `SELECT s.expires_at, u.uid, u.pseudo, u.displayName, u.avatar, u.banner, u.bio,
-              u.location, u.website, u.verified, u.recovery_ack, u.legacy_notice, u.totp_enabled, u.createdAt,
+              u.location, u.website, u.verified, u.recovery_ack, u.legacy_notice, u.onboarding_done, u.totp_enabled, u.createdAt,
               u.role, u.status, u.suspended_until, u.status_reason
        FROM sessions s JOIN users u ON u.uid = s.uid
        WHERE s.id = ?`,

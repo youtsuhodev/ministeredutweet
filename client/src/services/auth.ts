@@ -24,6 +24,8 @@ export interface CurrentUser {
   recoveryNoticePending: boolean;
   /* Ancien compte (avait une adresse e-mail, supprimée) : la pop-up explique le changement. */
   legacyNotice: boolean;
+  /* L'assistant d'onboarding reste à faire (nouveaux comptes uniquement). */
+  onboardingDone: boolean;
 }
 
 export async function login(pseudo: string, password: string, code?: string, captchaToken?: string) {
@@ -41,6 +43,11 @@ export async function register(pseudo: string, password: string, captchaToken?: 
 
 export async function logout() {
   return api.post('/auth/logout');
+}
+
+/* L'assistant d'onboarding a été terminé ou fermé : il ne réapparaîtra plus. */
+export async function completeOnboarding() {
+  return api.post('/auth/onboarded');
 }
 
 export async function getMe() {

@@ -36,6 +36,8 @@ export interface User {
   status_reason: string | null;
   age_confirmed_at: number | null;
   pseudo_changed_at: number | null;
+  /* 0 tant que l'assistant d'onboarding n'a pas été vu (nouveaux comptes uniquement). */
+  onboarding_done: number;
 }
 
 /* ── Utilisateurs ───────────────────────────────────────────────────────────── */
@@ -80,6 +82,7 @@ const UPDATABLE_USER_FIELDS = new Set([
   'totp_last_step',
   'pseudo',
   'pseudo_changed_at',
+  'onboarding_done',
   'role',
   'status',
   'suspended_until',
