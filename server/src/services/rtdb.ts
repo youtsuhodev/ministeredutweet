@@ -782,8 +782,11 @@ export async function deleteAccount(uid: string) {
     ]) {
       await conn.execute(sql, [uid, uid]);
     }
-    await conn.execute(      'DELETE FROM bookmarks WHERE uid = ?',
-      'DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+    await conn.execute(
+      'DELETE FROM bookmarks WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
+      [uid, uid],
+    );
+    await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM account_recovery_keys WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM chat_messages WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
