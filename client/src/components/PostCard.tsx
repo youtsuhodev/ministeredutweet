@@ -20,6 +20,7 @@ import { fullDate, timeAgo } from '../lib/time';
 import { formatCount, onViewCounted, trackView } from '../lib/views';
 import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
+import ImageLightbox from './ImageLightbox';
 import LazyImage from './LazyImage';
 import MentionTextarea from './MentionTextarea';
 import PostQuickMenu from './PostQuickMenu';
@@ -110,6 +111,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const longPress = useLongPress(() => setQuickMenuOpen(true));
 
@@ -469,7 +471,15 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
           {!editing && <LinkEmbeds text={text} />}
 
           {post.image && (
-            <div className="mt-3 rounded-2xl overflow-hidden border border-[var(--border-color)]">
+            <div
+              data-no-open
+              className="mt-3 rounded-2xl overflow-hidden border border-[var(--border-color)] cursor-pointer"
+              onClick={() => setLightboxOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxOpen(true); } }}
+              aria-label="Agrandir l'image"
+            >
               <LazyImage
                 src={post.image}
                 alt="Pièce jointe du post"
