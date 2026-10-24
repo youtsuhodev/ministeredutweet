@@ -1,8 +1,8 @@
 import AppShell from '../components/AppShell';
 import PageHeader from '../components/PageHeader';
-import PullToRefresh from '../components/PullToRefresh';
 import type { Post } from '../components/PostCard';
 import PostList from '../components/PostList';
+import PullToRefresh from '../components/PullToRefresh';
 import { usePaged } from '../hooks/usePaged';
 import { api } from '../services/api';
 

@@ -1,4 +1,16 @@
-import { Bell, Bookmark, Feather, Home, LogOut, Mail, MessagesSquare, Search, Settings, ShieldCheck, User } from 'lucide-react';
+import {
+  Bell,
+  Bookmark,
+  Feather,
+  Home,
+  LogOut,
+  Mail,
+  MessagesSquare,
+  Search,
+  Settings,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
@@ -54,7 +66,11 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
                   <span className="relative">
                     <Icon className={`w-6 h-6 ${isActive ? 'text-[var(--accent)]' : ''}`} />
                     {!!badge && (
-                      <span role="status" aria-live="polite" className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center">
+                      <span
+                        role="status"
+                        aria-live="polite"
+                        className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center"
+                      >
                         {badge > 99 ? '99+' : badge}
                       </span>
                     )}

@@ -197,8 +197,7 @@ export async function regenerateRecoveryCodes(uid: string): Promise<string[]> {
     codes.push(`${raw.slice(0, 5)}-${raw.slice(5)}`);
   }
   await withTransaction(async (conn) => {
-    await conn.execute(      'DELETE FROM bookmarks WHERE uid = ?',
-      'DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+    await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     for (const code of codes) {
       await conn.execute('INSERT IGNORE INTO recovery_codes (uid, code_hash) VALUES (?, ?)', [
         uid,
@@ -228,8 +227,7 @@ export async function countRecoveryCodes(uid: string): Promise<number> {
 }
 
 export async function deleteRecoveryCodes(uid: string) {
-  await query(      'DELETE FROM bookmarks WHERE uid = ?',
-      'DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+  await query('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
 }
 
 /* ── Clés de récupération du compte (mot de passe oublié) ───────────────────── */
@@ -708,35 +706,46 @@ export async function deleteComment(commentId: number, postId: number, uid: stri
 /* ── RGPD : export & suppression ────────────────────────────────────────────── */
 
 export async function exportUserData(uid: string) {
-  const [profile, posts, comments, likes, bookmarks, following, followers, notifications, blocks, sessions, chatMessages] =
-    await Promise.all([
-      getOne<Record<string, unknown>>(
-        'SELECT uid, pseudo, displayName, avatar, banner, bio, location, website, verified, totp_enabled, createdAt FROM users WHERE uid = ?',
-        [uid],
-      ),
-      query<unknown[]>(
-        'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at, edited_at FROM posts WHERE uid = ?',
-        [uid],
-      ),
-      query<unknown[]>('SELECT id, post_id, parent_id, text, created_at FROM comments WHERE uid = ?', [uid]),
-      query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
-      query<unknown[]>(
-        'SELECT p.id AS post_id, b.created_at FROM bookmarks b JOIN posts p ON p.id = b.post_id WHERE b.uid = ?',
-        [uid],
-      ),
-      query<unknown[]>(
-        'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.followed_uid WHERE f.follower_uid = ?',
-        [uid],
-      ),
-      query<unknown[]>(
-        'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.follower_uid WHERE f.followed_uid = ?',
-        [uid],
-      ),
-      query<unknown[]>('SELECT type, actor_uid, post_id, created_at FROM notifications WHERE uid = ?', [uid]),
-      query<unknown[]>('SELECT blocked_uid, created_at FROM blocks WHERE blocker_uid = ?', [uid]),
-      query<unknown[]>('SELECT user_agent, created_at, expires_at FROM sessions WHERE uid = ?', [uid]),
-      query<unknown[]>('SELECT id, body, created_at FROM chat_messages WHERE uid = ? AND deleted_at IS NULL', [uid]),
-    ]);
+  const [
+    profile,
+    posts,
+    comments,
+    likes,
+    bookmarks,
+    following,
+    followers,
+    notifications,
+    blocks,
+    sessions,
+    chatMessages,
+  ] = await Promise.all([
+    getOne<Record<string, unknown>>(
+      'SELECT uid, pseudo, displayName, avatar, banner, bio, location, website, verified, totp_enabled, createdAt FROM users WHERE uid = ?',
+      [uid],
+    ),
+    query<unknown[]>(
+      'SELECT id, text, image, video, audio, audio_duration, repost_of, created_at, edited_at FROM posts WHERE uid = ?',
+      [uid],
+    ),
+    query<unknown[]>('SELECT id, post_id, parent_id, text, created_at FROM comments WHERE uid = ?', [uid]),
+    query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
+    query<unknown[]>(
+      'SELECT p.id AS post_id, b.created_at FROM bookmarks b JOIN posts p ON p.id = b.post_id WHERE b.uid = ?',
+      [uid],
+    ),
+    query<unknown[]>(
+      'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.followed_uid WHERE f.follower_uid = ?',
+      [uid],
+    ),
+    query<unknown[]>(
+      'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.follower_uid WHERE f.followed_uid = ?',
+      [uid],
+    ),
+    query<unknown[]>('SELECT type, actor_uid, post_id, created_at FROM notifications WHERE uid = ?', [uid]),
+    query<unknown[]>('SELECT blocked_uid, created_at FROM blocks WHERE blocker_uid = ?', [uid]),
+    query<unknown[]>('SELECT user_agent, created_at, expires_at FROM sessions WHERE uid = ?', [uid]),
+    query<unknown[]>('SELECT id, body, created_at FROM chat_messages WHERE uid = ? AND deleted_at IS NULL', [uid]),
+  ]);
   return {
     exportedAt: new Date().toISOString(),
     profile,
@@ -768,7 +777,7 @@ export async function deleteAccount(uid: string) {
     await conn.execute('DELETE r FROM posts r JOIN posts o ON r.repost_of = o.id WHERE o.uid = ?', [uid]);
     await conn.execute(
       'DELETE FROM bookmarks WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
-      [uid],
+      [uid, uid],
     );
     for (const sql of [
       'DELETE FROM notifications WHERE uid = ? OR actor_uid = ?',
@@ -782,10 +791,6 @@ export async function deleteAccount(uid: string) {
     ]) {
       await conn.execute(sql, [uid, uid]);
     }
-    await conn.execute(
-      'DELETE FROM bookmarks WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
-      [uid, uid],
-    );
     await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM account_recovery_keys WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM chat_messages WHERE uid = ?', [uid]);

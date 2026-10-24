@@ -23,10 +23,10 @@ import { api, errorMessage } from '../services/api';
 import Avatar from './Avatar';
 import ImageLightbox from './ImageLightbox';
 import LazyImage from './LazyImage';
+import LinkEmbeds from './LinkEmbeds';
 import MentionTextarea from './MentionTextarea';
 import PostQuickMenu from './PostQuickMenu';
 import ReportDialog from './ReportDialog';
-import LinkEmbeds from './LinkEmbeds';
 import RichText from './RichText';
 import StatsDialog from './StatsDialog';
 import VerifiedBadge from './VerifiedBadge';
@@ -492,14 +492,15 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               onClick={() => setLightboxOpen(true)}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxOpen(true); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setLightboxOpen(true);
+                }
+              }}
               aria-label="Agrandir l'image"
             >
-              <LazyImage
-                src={post.image}
-                alt="Pièce jointe du post"
-                className="max-h-[500px] object-cover"
-              />
+              <LazyImage src={post.image} alt="Pièce jointe du post" className="max-h-[500px] object-cover" />
             </div>
           )}
 
@@ -561,18 +562,18 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               <span className="text-sm">{likesCount || ''}</span>
             </button>
 
-              <button
-                type="button"
-                onClick={handleBookmark}
-                aria-pressed={bookmarked}
-                title={bookmarked ? 'Retirer des enregistrements' : 'Enregistrer'}
-                aria-label={bookmarked ? 'Retirer des enregistrements' : 'Enregistrer'}
-                className={`flex items-center gap-1.5 transition-colors group ${bookmarked ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}
-              >
-                <span className="p-2 rounded-full group-hover:bg-[var(--accent)]/10 transition-colors">
-                  <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
-                </span>
-              </button>
+            <button
+              type="button"
+              onClick={handleBookmark}
+              aria-pressed={bookmarked}
+              title={bookmarked ? 'Retirer des enregistrements' : 'Enregistrer'}
+              aria-label={bookmarked ? 'Retirer des enregistrements' : 'Enregistrer'}
+              className={`flex items-center gap-1.5 transition-colors group ${bookmarked ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}
+            >
+              <span className="p-2 rounded-full group-hover:bg-[var(--accent)]/10 transition-colors">
+                <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
+              </span>
+            </button>
 
             {canEdit ? (
               <button
