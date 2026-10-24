@@ -8,7 +8,7 @@ import { api } from '../services/api';
 
 /* Marque-pages privés : même présentation que le fil, mais un par utilisateur et visible de lui seul. */
 export default function BookmarksPage() {
-  const bookmarks = usePaged<Post>((offset) => api.get<Post[]>(`/posts/bookmarks?offset=${offset}`));
+  const bookmarks = usePaged<Post>((offset) => api.get<Post[]>(`/posts/bookmarks?offset=${offset}`), 'bookmarks');
 
   return (
     <AppShell onPosted={bookmarks.reload}>
