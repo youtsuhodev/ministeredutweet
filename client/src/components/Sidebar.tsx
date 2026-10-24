@@ -1,4 +1,4 @@
-import { Bell, Feather, Home, LogOut, Mail, MessagesSquare, Search, Settings, ShieldCheck, User } from 'lucide-react';
+import { Bell, Bookmark, Feather, Home, LogOut, Mail, MessagesSquare, Search, Settings, ShieldCheck, User } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
@@ -13,6 +13,7 @@ export default function Sidebar({ onCompose }: { onCompose: () => void }) {
   const navItems = [
     { to: '/', icon: Home, label: 'Accueil' },
     { to: '/explore', icon: Search, label: 'Explorer' },
+    { to: '/bookmarks', icon: Bookmark, label: 'Enregistrés' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unread },
     { to: '/chat', icon: MessagesSquare, label: 'Salon', badge: 0 },
     { to: '/messages', icon: Mail, label: 'Messages', badge: unreadMessages },

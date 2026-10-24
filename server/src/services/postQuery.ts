@@ -51,6 +51,11 @@ export const filters = {
     where: "p.repost_of IS NULL AND s.text LIKE ? ESCAPE '!'",
     params: [`%${escapeLike(q)}%`],
   }),
+  /* Marque-pages privés de l'utilisateur : les posts d'origine qu'il a enregistrés (pas les reposts). */
+  bookmarks: (uid: string): Filter => ({
+    where: 'p.repost_of IS NULL AND s.id IN (SELECT post_id FROM bookmarks WHERE uid = ?)',
+    params: [uid],
+  }),
 };
 
 interface Row {
@@ -80,6 +85,7 @@ interface Row {
   comments_count: number;
   user_liked: number;
   user_reposted: number;
+  user_bookmarked: number;
 }
 
 export async function fetchPosts(
@@ -99,7 +105,8 @@ export async function fetchPosts(
             (SELECT COUNT(*) FROM posts WHERE repost_of = s.id) AS reposts_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = s.id) AS comments_count,
             (SELECT COUNT(*) FROM likes WHERE post_id = s.id AND uid = ?) AS user_liked,
-            (SELECT COUNT(*) FROM posts WHERE uid = ? AND repost_of = s.id) AS user_reposted
+            (SELECT COUNT(*) FROM posts WHERE uid = ? AND repost_of = s.id) AS user_reposted,
+            (SELECT COUNT(*) FROM bookmarks WHERE post_id = s.id AND uid = ?) AS user_bookmarked
      FROM posts p
      JOIN users ru ON ru.uid = p.uid
      JOIN posts s ON s.id = COALESCE(p.repost_of, p.id)
@@ -112,7 +119,7 @@ export async function fetchPosts(
        AND ${filter.where}
      ORDER BY p.created_at DESC, p.id DESC
      LIMIT ${lim} OFFSET ${off}`,
-    [viewerUid, viewerUid, viewerUid, viewerUid, ...filter.params],
+    [viewerUid, viewerUid, viewerUid, viewerUid, viewerUid, ...filter.params],
   );
   return rows.map((r) => ({
     id: r.id,
@@ -132,6 +139,7 @@ export async function fetchPosts(
     commentsCount: r.comments_count,
     userLiked: !!r.user_liked,
     userReposted: !!r.user_reposted,
+    userBookmarked: !!r.user_bookmarked,
     repostOf: r.repost_of,
     repostedBy: r.repost_of ? { uid: r.actor_uid, pseudo: r.actor_pseudo, displayName: r.actor_name } : null,
     user: { uid: r.uid, pseudo: r.pseudo, displayName: r.displayName, avatar: r.avatar, verified: !!r.verified },

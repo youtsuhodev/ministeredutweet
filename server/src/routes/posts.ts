@@ -24,6 +24,7 @@ import {
   notifyMentions,
   REPORT_CATEGORIES,
   type ReportCategory,
+  toggleBookmark,
   toggleLike,
   toggleRepost,
   updatePostText,
@@ -70,6 +71,12 @@ const viewLimiter = rateLimit({
   windowMs: minute,
   max: 60,
   message: 'Trop de requêtes, ralentis un peu',
+  key: byUser,
+});
+const bookmarkLimiter = rateLimit({
+  windowMs: minute,
+  max: 60,
+  message: 'Trop de mises en favoris, ralentis un peu',
   key: byUser,
 });
 const reportLimiter = rateLimit({
@@ -386,6 +393,31 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
     res.json({ ok: true, deleted });
   } catch (err) {
     console.error('[POSTS] Delete comment error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/* Marque-pages privés : la liste d'un utilisateur, la même présentation que le fil. */
+router.get('/bookmarks', authMiddleware, async (req, res) => {
+  try {
+    const uid = currentUser(req).uid;
+    const limit = toInt(req.query.limit, 20, 1, 100);
+    const offset = toInt(req.query.offset, 0, 0, 100000);
+    res.json(await fetchPosts(uid, filters.bookmarks(uid), limit, offset));
+  } catch (err) {
+    console.error('[POSTS] Bookmarks error:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.post('/:id/bookmark', authMiddleware, bookmarkLimiter, async (req, res) => {
+  try {
+    const uid = currentUser(req).uid;
+    const post = await resolveSourcePost(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Post introuvable' });
+    res.json({ bookmarked: await toggleBookmark(uid, post.id) });
+  } catch (err) {
+    console.error('[POSTS] Bookmark error:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

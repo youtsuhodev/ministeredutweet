@@ -1,5 +1,6 @@
 import {
   Ban,
+  Bookmark,
   ChartNoAxesColumn,
   Flag,
   Globe,
@@ -61,6 +62,8 @@ export interface Post {
   commentsCount: number;
   userLiked: boolean;
   userReposted: boolean;
+  /* marque-page privé de l'utilisateur (personne d'autre ne le voit) */
+  userBookmarked: boolean;
   repostOf: number | null;
   repostedBy: { uid: string; pseudo: string; displayName: string | null } | null;
   user: PostUser;
@@ -95,6 +98,7 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [reposted, setReposted] = useState(post.userReposted);
   const [repostsCount, setRepostsCount] = useState(post.repostsCount);
+  const [bookmarked, setBookmarked] = useState(post.userBookmarked);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [reporting, setReporting] = useState(false);
@@ -167,6 +171,17 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
     } catch {
       setLiked(!next);
       setLikesCount((c) => c + (next ? -1 : 1));
+    }
+  };
+
+  /* Marque-page privé : rien n'est notifié, personne ne peut le voir. */
+  const handleBookmark = async () => {
+    const next = !bookmarked;
+    setBookmarked(next);
+    try {
+      await api.post(`/posts/${post.id}/bookmark`);
+    } catch {
+      setBookmarked(!next);
     }
   };
 
@@ -545,6 +560,19 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
               </span>
               <span className="text-sm">{likesCount || ''}</span>
             </button>
+
+              <button
+                type="button"
+                onClick={handleBookmark}
+                aria-pressed={bookmarked}
+                title={bookmarked ? 'Retirer des enregistrements' : 'Enregistrer'}
+                aria-label={bookmarked ? 'Retirer des enregistrements' : 'Enregistrer'}
+                className={`flex items-center gap-1.5 transition-colors group ${bookmarked ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}
+              >
+                <span className="p-2 rounded-full group-hover:bg-[var(--accent)]/10 transition-colors">
+                  <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
+                </span>
+              </button>
 
             {canEdit ? (
               <button

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Feather, Home, Mail, MessagesSquare, MoreHorizontal, Search, Settings, ShieldCheck, User, X } from 'lucide-react';
+import { Bookmark, Feather, Home, Mail, MessagesSquare, MoreHorizontal, Search, Settings, ShieldCheck, User, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRealtime } from '../hooks/useRealtime';
@@ -24,6 +24,7 @@ export default function MobileNav() {
   ];
 
   const moreItems = [
+    { to: '/bookmarks', icon: Bookmark, label: 'Enregistrés', badge: 0 },
     { to: '/chat', icon: MessagesSquare, label: 'Salon', badge: 0 },
     { to: '/settings', icon: Settings, label: 'Réglages', badge: 0 },
     ...(user.role === 'moderator' || user.role === 'admin'

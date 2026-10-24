@@ -9,6 +9,7 @@ import './index.css';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const FeedPage = lazy(() => import('./pages/FeedPage'));
+const BookmarksPage = lazy(() => import('./pages/BookmarksPage'));
 const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const TagPage = lazy(() => import('./pages/TagPage'));
 const PostPage = lazy(() => import('./pages/PostPage'));
@@ -67,6 +68,7 @@ function AppRoutes() {
       <Route path="/legal/:slug" element={<LegalPage />} />
       <Route path="/" element={protectedPage(<FeedPage />)} />
       <Route path="/explore" element={protectedPage(<ExplorePage />)} />
+      <Route path="/bookmarks" element={protectedPage(<BookmarksPage />)} />
       <Route path="/tag/:tag" element={protectedPage(<TagPage />)} />
       <Route path="/post/:id" element={protectedPage(<PostPage />)} />
       <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />

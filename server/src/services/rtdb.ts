@@ -197,7 +197,8 @@ export async function regenerateRecoveryCodes(uid: string): Promise<string[]> {
     codes.push(`${raw.slice(0, 5)}-${raw.slice(5)}`);
   }
   await withTransaction(async (conn) => {
-    await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+    await conn.execute(      'DELETE FROM bookmarks WHERE uid = ?',
+      'DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     for (const code of codes) {
       await conn.execute('INSERT IGNORE INTO recovery_codes (uid, code_hash) VALUES (?, ?)', [
         uid,
@@ -227,7 +228,8 @@ export async function countRecoveryCodes(uid: string): Promise<number> {
 }
 
 export async function deleteRecoveryCodes(uid: string) {
-  await query('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+  await query(      'DELETE FROM bookmarks WHERE uid = ?',
+      'DELETE FROM recovery_codes WHERE uid = ?', [uid]);
 }
 
 /* ── Clés de récupération du compte (mot de passe oublié) ───────────────────── */
@@ -408,6 +410,7 @@ async function purgePost(row: {
 }) {
   const postId = row.id;
   await withTransaction(async (conn) => {
+    await conn.execute('DELETE FROM bookmarks WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM posts WHERE repost_of = ?', [postId]);
     await conn.execute('DELETE FROM likes WHERE post_id = ?', [postId]);
     await conn.execute('DELETE FROM comments WHERE post_id = ?', [postId]);
@@ -443,6 +446,20 @@ export async function toggleRepost(uid: string, postId: number) {
 }
 
 /* ── Abonnements & blocages ─────────────────────────────────────────────────── */
+
+/* Marque-pages privés : enregistrer / retirer un post d'origine. Rien n'est notifié ni exposé. */
+export async function toggleBookmark(uid: string, postId: number) {
+  const existing = await getOne<{ uid: string }>('SELECT uid FROM bookmarks WHERE uid = ? AND post_id = ?', [
+    uid,
+    postId,
+  ]);
+  if (existing) {
+    await query('DELETE FROM bookmarks WHERE uid = ? AND post_id = ?', [uid, postId]);
+    return false;
+  }
+  await query('INSERT IGNORE INTO bookmarks (uid, post_id) VALUES (?, ?)', [uid, postId]);
+  return true;
+}
 
 export async function toggleFollow(followerUid: string, followedUid: string) {
   const existing = await getOne<{ follower_uid: string }>(
@@ -691,7 +708,7 @@ export async function deleteComment(commentId: number, postId: number, uid: stri
 /* ── RGPD : export & suppression ────────────────────────────────────────────── */
 
 export async function exportUserData(uid: string) {
-  const [profile, posts, comments, likes, following, followers, notifications, blocks, sessions, chatMessages] =
+  const [profile, posts, comments, likes, bookmarks, following, followers, notifications, blocks, sessions, chatMessages] =
     await Promise.all([
       getOne<Record<string, unknown>>(
         'SELECT uid, pseudo, displayName, avatar, banner, bio, location, website, verified, totp_enabled, createdAt FROM users WHERE uid = ?',
@@ -703,6 +720,10 @@ export async function exportUserData(uid: string) {
       ),
       query<unknown[]>('SELECT id, post_id, parent_id, text, created_at FROM comments WHERE uid = ?', [uid]),
       query<unknown[]>('SELECT post_id, created_at FROM likes WHERE uid = ?', [uid]),
+      query<unknown[]>(
+        'SELECT p.id AS post_id, b.created_at FROM bookmarks b JOIN posts p ON p.id = b.post_id WHERE b.uid = ?',
+        [uid],
+      ),
       query<unknown[]>(
         'SELECT u.pseudo, f.created_at FROM follows f JOIN users u ON u.uid = f.followed_uid WHERE f.follower_uid = ?',
         [uid],
@@ -722,6 +743,7 @@ export async function exportUserData(uid: string) {
     posts,
     comments,
     likes,
+    bookmarks,
     following,
     followers,
     notifications,
@@ -744,6 +766,10 @@ export async function deleteAccount(uid: string) {
   await purgeUserMessaging(uid);
   await withTransaction(async (conn) => {
     await conn.execute('DELETE r FROM posts r JOIN posts o ON r.repost_of = o.id WHERE o.uid = ?', [uid]);
+    await conn.execute(
+      'DELETE FROM bookmarks WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
+      [uid],
+    );
     for (const sql of [
       'DELETE FROM notifications WHERE uid = ? OR actor_uid = ?',
       'DELETE FROM likes WHERE uid = ? OR post_id IN (SELECT id FROM (SELECT id FROM posts WHERE uid = ?) AS mine)',
@@ -756,7 +782,8 @@ export async function deleteAccount(uid: string) {
     ]) {
       await conn.execute(sql, [uid, uid]);
     }
-    await conn.execute('DELETE FROM recovery_codes WHERE uid = ?', [uid]);
+    await conn.execute(      'DELETE FROM bookmarks WHERE uid = ?',
+      'DELETE FROM recovery_codes WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM account_recovery_keys WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM chat_messages WHERE uid = ?', [uid]);
     await conn.execute('DELETE FROM sessions WHERE uid = ?', [uid]);
