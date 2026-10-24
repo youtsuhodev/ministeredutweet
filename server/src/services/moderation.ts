@@ -258,6 +258,121 @@ export async function resolveReport(
   return { closed: ids.length, postDeleted };
 }
 
+/* Suppression directe d'un post par la modération : purge, notification à l'auteur avec motif, journal. */
+export async function deletePostByModerator(actor: Actor, postId: number, reason?: unknown) {
+  const clean = cleanReason(reason, true);
+  /* On récupère l'auteur AVANT la purge (le post n'existe plus ensuite). */
+  const post = await getOne<{ uid: string }>('SELECT uid FROM posts WHERE id = ?', [postId]);
+  const deleted = await deletePostAsModerator(postId);
+  if (!deleted) throw new ModerationError(404, 'Post introuvable');
+  await logModAction({ actorUid: actor.uid, action: 'post:delete', targetPostId: postId, reason: clean });
+  /* L'auteur (s'il existe encore) est notifié avec le motif, comme pour un signalement. */
+  if (post) {
+    await createSystemNotification(
+      post.uid,
+      'moderation',
+      `Ton post #${postId} a été supprimé par la modération. Motif : ${clean}. Tu peux contester cette décision en écrivant à ${CONTACT}.`,
+    );
+  }
+  return { ok: true };
+}
+
+/* ── Statistiques pour l'administration ────────────────────────────────────── */
+/* Pas d'affiliation : des agrégats seulement, aucun contenu individuel dans cette section. */
+
+export async function getAdminStats() {
+  const [users, posts, comments, reports, newUsers, postsLast24h, reportsLast7d] = await Promise.all([
+    getOne<{ total: number; active: number; suspended: number; banned: number }>(
+      "SELECT COUNT(*) AS total, SUM(status = 'active') AS active, SUM(status = 'suspended') AS suspended, SUM(status = 'banned') AS banned FROM users",
+    ),
+    getOne<{ n: number }>('SELECT COUNT(*) AS n FROM posts WHERE repost_of IS NULL'),
+    getOne<{ n: number }>('SELECT COUNT(*) AS n FROM comments'),
+    countOpenReports(),
+    getOne<{ n: number }>('SELECT COUNT(*) AS n FROM users WHERE createdAt >= ? - 7 * 24 * 60 * 60 * 1000', [
+      Date.now(),
+    ]),
+    getOne<{ n: number }>('SELECT COUNT(*) AS n FROM posts WHERE created_at >= NOW() - INTERVAL 1 DAY'),
+    getOne<{ n: number }>('SELECT COUNT(*) AS n FROM reports WHERE created_at >= NOW() - INTERVAL 7 DAY'),
+  ]);
+  return {
+    users: {
+      total: Number(users?.total ?? 0),
+      active: Number(users?.active ?? 0),
+      suspended: Number(users?.suspended ?? 0),
+      banned: Number(users?.banned ?? 0),
+      newLast7d: Number(newUsers?.n ?? 0),
+    },
+    content: {
+      posts: Number(posts?.n ?? 0),
+      comments: Number(comments?.n ?? 0),
+      postsLast24h: Number(postsLast24h?.n ?? 0),
+    },
+    reports: { open: reports, last7d: Number(reportsLast7d?.n ?? 0) },
+  };
+}
+
+/* ── Posts (vues de l'ensemble du contenu) ─────────────────────────────────── */
+
+export async function listAdminPosts(limit: number, offset: number) {
+  const lim = Math.max(1, Math.min(100, Math.trunc(limit)));
+  const off = Math.max(0, Math.trunc(offset));
+  return query<
+    {
+      id: number;
+      text: string | null;
+      image: string | null;
+      video: string | null;
+      audio: string | null;
+      created_at: string;
+      is_repost: number;
+      uid: string;
+      pseudo: string;
+      status: string;
+      likes_count: number;
+      comments_count: number;
+      open_reports: number;
+    }[]
+  >(
+    `SELECT p.id, p.text, p.image, p.video, p.audio, p.created_at, (p.repost_of IS NOT NULL) AS is_repost,
+            u.uid, u.pseudo, u.status,
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count,
+            (SELECT COUNT(*) FROM reports WHERE post_id = p.id AND status = 'open') AS open_reports
+     FROM posts p JOIN users u ON u.uid = p.uid
+     ORDER BY p.created_at DESC, p.id DESC
+     LIMIT ${lim} OFFSET ${off}`,
+  );
+}
+
+/* ── Comptes récents (gestion des comptes) ─────────────────────────────────── */
+
+export async function listRecentUsers(limit: number, offset: number) {
+  const lim = Math.max(1, Math.min(100, Math.trunc(limit)));
+  const off = Math.max(0, Math.trunc(offset));
+  return query<
+    {
+      uid: string;
+      pseudo: string;
+      role: string;
+      status: string;
+      suspended_until: number | null;
+      status_reason: string | null;
+      createdAt: number;
+      posts_count: number;
+      reports_against: number;
+      last_session: number | null;
+    }[]
+  >(
+    `SELECT u.uid, u.pseudo, u.role, u.status, u.suspended_until, u.status_reason, u.createdAt,
+            (SELECT COUNT(*) FROM posts p WHERE p.uid = u.uid) AS posts_count,
+            (SELECT COUNT(*) FROM reports r WHERE r.reported_uid = u.uid) AS reports_against,
+            (SELECT MAX(s.created_at) FROM sessions s WHERE s.uid = u.uid) AS last_session
+     FROM users u
+     ORDER BY u.createdAt DESC
+     LIMIT ${lim} OFFSET ${off}`,
+  );
+}
+
 /* ── Utilisateurs ───────────────────────────────────────────────────────────── */
 
 /* Recherche par pseudo uniquement : l'adresse e-mail ne sort jamais de la base, même pour la modération. */

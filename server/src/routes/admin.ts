@@ -4,7 +4,11 @@ import { authMiddleware, currentUser, requireRole } from '../middleware/auth.js'
 import { byUser, rateLimit } from '../middleware/rateLimit.js';
 import {
   countOpenReports,
+  deletePostByModerator,
+  getAdminStats,
+  listAdminPosts,
   listModLog,
+  listRecentUsers,
   listReports,
   ModerationError,
   type ReportAction,
@@ -20,6 +24,61 @@ const router = patchRouter(Router());
 
 router.use(authMiddleware, requireRole('moderator'));
 router.use(rateLimit({ windowMs: 60 * 1000, max: 120, message: 'Trop de requêtes, ralentis un peu', key: byUser }));
+
+/* Tableau de bord : des agrégats uniquement, jamais de contenu individuel. */
+router.get('/stats', async (_req, res) => {
+  res.json(await getAdminStats());
+});
+
+/* Vue de l'ensemble du contenu récent, avec suppression directe. */
+router.get('/posts', async (req, res) => {
+  const rows = await listAdminPosts(toInt(req.query.limit, 30, 1, 100), toInt(req.query.offset, 0, 0, 100000));
+  res.json(
+    rows.map((p) => ({
+      id: p.id,
+      text: p.text,
+      image: p.image,
+      video: p.video,
+      audio: p.audio,
+      createdAt: p.created_at,
+      isRepost: !!p.is_repost,
+      author: { uid: p.uid, pseudo: p.pseudo, status: p.status },
+      likesCount: Number(p.likes_count),
+      commentsCount: Number(p.comments_count),
+      openReports: Number(p.open_reports),
+    })),
+  );
+});
+
+router.delete('/posts/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.status(404).json({ error: 'Post introuvable' });
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason : undefined;
+  try {
+    res.json(await deletePostByModerator(currentUser(req), id, reason));
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+/* Comptes récents : les derniers inscrits avec leur statut, leur activité et leur dernière session. */
+router.get('/accounts', async (req, res) => {
+  const rows = await listRecentUsers(toInt(req.query.limit, 30, 1, 100), toInt(req.query.offset, 0, 0, 100000));
+  res.json(
+    rows.map((u) => ({
+      uid: u.uid,
+      pseudo: u.pseudo,
+      role: u.role,
+      status: u.status,
+      suspendedUntil: u.suspended_until,
+      statusReason: u.status_reason,
+      createdAt: u.createdAt,
+      postsCount: Number(u.posts_count),
+      reportsAgainst: Number(u.reports_against),
+      lastSession: u.last_session,
+    })),
+  );
+});
 
 router.get('/summary', async (_req, res) => {
   res.json({ openReports: await countOpenReports() });
