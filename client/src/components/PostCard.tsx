@@ -593,6 +593,10 @@ export default function PostCard({ post, linkToPost = true, onDelete, onBlocked 
             setQuickMenuOpen(false);
             flash((await copyToClipboard(postUrl(post.id, isPublic))) ? 'Lien copié' : 'Copie impossible');
           }}
+          onShare={() => {
+            setQuickMenuOpen(false);
+            handleShare();
+          }}
           onReport={() => {
             setQuickMenuOpen(false);
             setReporting(true);
