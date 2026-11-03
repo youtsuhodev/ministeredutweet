@@ -1,6 +1,5 @@
 import type { ResultSetHeader } from 'mysql2/promise';
-import { getOne, query, withTransaction } from '../config/database.js';
-import { isUserVisible, publishToUsers } from './realtime.js';
+import { getOne, query } from '../config/database.js';
 import { uploadExists } from './uploads.js';
 
 export class MobilisationError extends Error {
@@ -93,13 +92,16 @@ async function uniqueSlug(title: string): Promise<string> {
   const base = slugify(title) || 'mobilisation';
   let candidate = base;
   let n = 1;
-  while (await getOne<{ id: number }>('SELECT id FROM mobilisations WHERE slug = ?', [candidate])) {
+  while (await getOne<{ id: number }>('SELECT 1 FROM mobilisations WHERE slug = ?', [candidate])) {
     candidate = `${base}-${n++}`;
   }
   return candidate;
 }
 
-function toDto(row: MobilisationRow & { participantsCount: number; mediaCount: number; commentsCount: number }, uid: string): MobilisationDto {
+function toDto(
+  row: MobilisationRow & { participantsCount: number; mediaCount: number; commentsCount: number },
+  _uid: string,
+): MobilisationDto {
   return {
     id: row.id,
     slug: row.slug,
@@ -120,7 +122,10 @@ function toDto(row: MobilisationRow & { participantsCount: number; mediaCount: n
   };
 }
 
-export async function listMobilisations(uid: string, opts: { status?: string; before?: number; limit: number }): Promise<MobilisationListItem[]> {
+export async function listMobilisations(
+  uid: string,
+  opts: { status?: string; before?: number; limit: number },
+): Promise<MobilisationListItem[]> {
   const conditions: string[] = [];
   const params: unknown[] = [];
   if (opts.status) {
@@ -159,7 +164,9 @@ export async function listMobilisations(uid: string, opts: { status?: string; be
 }
 
 export async function getMobilisation(id: number, uid: string): Promise<MobilisationDto | null> {
-  const row = await getOne<MobilisationRow & { participantsCount: number; mediaCount: number; commentsCount: number; isParticipant: number }>(
+  const row = await getOne<
+    MobilisationRow & { participantsCount: number; mediaCount: number; commentsCount: number; isParticipant: number }
+  >(
     `SELECT m.*,
        (SELECT COUNT(*) FROM mobilisation_participants mp WHERE mp.mobilisation_id = m.id) AS participantsCount,
        (SELECT COUNT(*) FROM mobilisation_media mm WHERE mm.mobilisation_id = m.id) AS mediaCount,
@@ -189,20 +196,60 @@ export async function getMobilisationBySlug(slug: string, uid: string): Promise<
 
 export async function createMobilisation(
   uid: string,
-  data: { title: string; description: string; practicalInfo?: string; eventDate: string; location: string; image?: string },
+  data: {
+    title: string;
+    description: string;
+    practicalInfo?: string;
+    eventDate: string;
+    location: string;
+    image?: string;
+  },
 ): Promise<MobilisationDto> {
   if (!data.title || data.title.length > MAX_TITLE) throw new MobilisationError('Titre invalide');
-  if (!data.description || data.description.length > MAX_DESCRIPTION) throw new MobilisationError('Description invalide');
+  if (!data.description || data.description.length > MAX_DESCRIPTION)
+    throw new MobilisationError('Description invalide');
   if (!data.location || data.location.length > MAX_LOCATION) throw new MobilisationError('Lieu invalide');
-  if (!data.eventDate) throw new MobilisationError('Date de l\'événement requise');
+  if (!data.eventDate) throw new MobilisationError("Date de l'événement requise");
   if (data.image && !uploadExists(data.image)) throw new MobilisationError('Image introuvable');
 
   const slug = await uniqueSlug(data.title);
-  const result = await query<ResultSetHeader>(
-    `INSERT INTO mobilisations (slug, title, description, practical_info, event_date, location, image, created_by)
+  let result: ResultSetHeader;
+  try {
+    result = await query<ResultSetHeader>(
+      `INSERT INTO mobilisations (slug, title, description, practical_info, event_date, location, image, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [slug, data.title.trim(), data.description.trim(), data.practicalInfo?.trim() ?? null, data.eventDate, data.location.trim(), data.image ?? null, uid],
-  );
+      [
+        slug,
+        data.title.trim(),
+        data.description.trim(),
+        data.practicalInfo?.trim() ?? null,
+        data.eventDate,
+        data.location.trim(),
+        data.image ?? null,
+        uid,
+      ],
+    );
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ER_DUP_ENTRY') {
+      const slug2 = await uniqueSlug(data.title);
+      result = await query<ResultSetHeader>(
+        `INSERT INTO mobilisations (slug, title, description, practical_info, event_date, location, image, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          slug2,
+          data.title.trim(),
+          data.description.trim(),
+          data.practicalInfo?.trim() ?? null,
+          data.eventDate,
+          data.location.trim(),
+          data.image ?? null,
+          uid,
+        ],
+      );
+    } else {
+      throw err;
+    }
+  }
   const dto = await getMobilisation(result.insertId, uid);
   if (!dto) throw new MobilisationError('Création échouée', 500);
   return dto;
@@ -211,7 +258,15 @@ export async function createMobilisation(
 export async function updateMobilisation(
   id: number,
   uid: string,
-  data: { title?: string; description?: string; practicalInfo?: string; eventDate?: string; location?: string; image?: string; status?: string },
+  data: {
+    title?: string;
+    description?: string;
+    practicalInfo?: string;
+    eventDate?: string;
+    location?: string;
+    image?: string;
+    status?: string;
+  },
 ): Promise<void> {
   const mob = await getOne<{ created_by: string }>('SELECT created_by FROM mobilisations WHERE id = ?', [id]);
   if (!mob) throw new MobilisationError('Mobilisation introuvable', 404);
@@ -225,12 +280,14 @@ export async function updateMobilisation(
     params.push(data.title.trim());
   }
   if (data.description !== undefined) {
-    if (!data.description || data.description.length > MAX_DESCRIPTION) throw new MobilisationError('Description invalide');
+    if (!data.description || data.description.length > MAX_DESCRIPTION)
+      throw new MobilisationError('Description invalide');
     fields.push('description = ?');
     params.push(data.description.trim());
   }
   if (data.practicalInfo !== undefined) {
-    if (data.practicalInfo && data.practicalInfo.length > MAX_PRACTICAL) throw new MobilisationError('Infos pratiques trop longues');
+    if (data.practicalInfo && data.practicalInfo.length > MAX_PRACTICAL)
+      throw new MobilisationError('Infos pratiques trop longues');
     fields.push('practical_info = ?');
     params.push(data.practicalInfo?.trim() ?? null);
   }
@@ -249,7 +306,8 @@ export async function updateMobilisation(
     params.push(data.image ?? null);
   }
   if (data.status !== undefined) {
-    if (!['upcoming', 'ongoing', 'past', 'cancelled'].includes(data.status)) throw new MobilisationError('Statut invalide');
+    if (!['upcoming', 'ongoing', 'past', 'cancelled'].includes(data.status))
+      throw new MobilisationError('Statut invalide');
     fields.push('status = ?');
     params.push(data.status);
   }
@@ -275,7 +333,12 @@ export async function leaveMobilisation(id: number, uid: string): Promise<void> 
   await query('DELETE FROM mobilisation_participants WHERE mobilisation_id = ? AND uid = ?', [id, uid]);
 }
 
-export async function addMobilisationMedia(id: number, uid: string, url: string, type: 'image' | 'video'): Promise<MobilisationMediaDto> {
+export async function addMobilisationMedia(
+  id: number,
+  uid: string,
+  url: string,
+  type: 'image' | 'video',
+): Promise<MobilisationMediaDto> {
   const mob = await getOne<{ id: number }>('SELECT id FROM mobilisations WHERE id = ?', [id]);
   if (!mob) throw new MobilisationError('Mobilisation introuvable', 404);
   if (!uploadExists(url)) throw new MobilisationError('Média introuvable');
@@ -292,11 +355,19 @@ export async function addMobilisationMedia(id: number, uid: string, url: string,
     url,
     type,
     createdAt: new Date().toISOString(),
-    sender: { uid, pseudo: sender?.pseudo ?? '', displayName: sender?.displayName ?? null, avatar: sender?.avatar ?? null },
+    sender: {
+      uid,
+      pseudo: sender?.pseudo ?? '',
+      displayName: sender?.displayName ?? null,
+      avatar: sender?.avatar ?? null,
+    },
   };
 }
 
-export async function listMobilisationMedia(id: number, opts: { before?: number; limit: number }): Promise<MobilisationMediaDto[]> {
+export async function listMobilisationMedia(
+  id: number,
+  opts: { before?: number; limit: number },
+): Promise<MobilisationMediaDto[]> {
   const params: unknown[] = [id];
   let where = 'mm.mobilisation_id = ?';
   if (opts.before) {
@@ -304,7 +375,9 @@ export async function listMobilisationMedia(id: number, opts: { before?: number;
     params.push(opts.before);
   }
   params.push(opts.limit);
-  const rows = await query<(MobilisationMediaDto & { pseudo: string; displayName: string | null; avatar: string | null })[]>(
+  const rows = await query<
+    (MobilisationMediaDto & { pseudo: string; displayName: string | null; avatar: string | null })[]
+  >(
     `SELECT mm.id, mm.url, mm.type, mm.created_at AS createdAt, u.pseudo, u.displayName, u.avatar
      FROM mobilisation_media mm JOIN users u ON u.uid = mm.uid
      WHERE ${where} ORDER BY mm.id DESC LIMIT ?`,
@@ -336,11 +409,19 @@ export async function addMobilisationComment(id: number, uid: string, body: stri
     mobilisationId: id,
     body: body.trim(),
     createdAt: new Date().toISOString(),
-    sender: { uid, pseudo: sender?.pseudo ?? '', displayName: sender?.displayName ?? null, avatar: sender?.avatar ?? null },
+    sender: {
+      uid,
+      pseudo: sender?.pseudo ?? '',
+      displayName: sender?.displayName ?? null,
+      avatar: sender?.avatar ?? null,
+    },
   };
 }
 
-export async function listMobilisationComments(id: number, opts: { before?: number; limit: number }): Promise<MobilisationCommentDto[]> {
+export async function listMobilisationComments(
+  id: number,
+  opts: { before?: number; limit: number },
+): Promise<MobilisationCommentDto[]> {
   const params: unknown[] = [id];
   let where = 'mc.mobilisation_id = ? AND mc.deleted_at IS NULL';
   if (opts.before) {
@@ -348,7 +429,17 @@ export async function listMobilisationComments(id: number, opts: { before?: numb
     params.push(opts.before);
   }
   params.push(opts.limit);
-  const rows = await query<{ id: number; body: string; created_at: string; uid: string; pseudo: string; displayName: string | null; avatar: string | null }[]>(
+  const rows = await query<
+    {
+      id: number;
+      body: string;
+      created_at: string;
+      uid: string;
+      pseudo: string;
+      displayName: string | null;
+      avatar: string | null;
+    }[]
+  >(
     `SELECT mc.id, mc.body, mc.created_at, mc.uid, u.pseudo, u.displayName, u.avatar
      FROM mobilisation_comments mc JOIN users u ON u.uid = mc.uid
      WHERE ${where} ORDER BY mc.id DESC LIMIT ?`,
@@ -370,7 +461,10 @@ export async function deleteMobilisationComment(commentId: number, uid: string):
   await query('UPDATE mobilisation_comments SET deleted_at = NOW() WHERE id = ?', [commentId]);
 }
 
-export async function getParticipants(id: number, limit: number): Promise<{ uid: string; pseudo: string; displayName: string | null; avatar: string | null; joinedAt: string }[]> {
+export async function getParticipants(
+  id: number,
+  limit: number,
+): Promise<{ uid: string; pseudo: string; displayName: string | null; avatar: string | null; joinedAt: string }[]> {
   return query(
     `SELECT mp.uid, u.pseudo, u.displayName, u.avatar, mp.joined_at AS joinedAt
      FROM mobilisation_participants mp JOIN users u ON u.uid = mp.uid

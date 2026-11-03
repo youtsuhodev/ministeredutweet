@@ -53,7 +53,9 @@ export default function MobilisationCreateModal({ onClose, onCreated }: Props) {
 
         <form onSubmit={submit} className="p-5 space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-title">Titre</label>
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-title">
+              Titre
+            </label>
             <input
               id="mob-title"
               type="text"
@@ -68,7 +70,9 @@ export default function MobilisationCreateModal({ onClose, onCreated }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-date">Date</label>
+              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-date">
+                Date
+              </label>
               <input
                 id="mob-date"
                 type="datetime-local"
@@ -79,7 +83,9 @@ export default function MobilisationCreateModal({ onClose, onCreated }: Props) {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-location">Lieu</label>
+              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-location">
+                Lieu
+              </label>
               <input
                 id="mob-location"
                 type="text"
@@ -94,7 +100,9 @@ export default function MobilisationCreateModal({ onClose, onCreated }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-desc">Description</label>
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-desc">
+              Description
+            </label>
             <textarea
               id="mob-desc"
               value={description}
@@ -108,7 +116,9 @@ export default function MobilisationCreateModal({ onClose, onCreated }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-practical">Infos pratiques</label>
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1" htmlFor="mob-practical">
+              Infos pratiques
+            </label>
             <textarea
               id="mob-practical"
               value={practicalInfo}

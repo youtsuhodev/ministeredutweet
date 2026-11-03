@@ -2,10 +2,10 @@ import { CalendarDays, MapPin, Megaphone, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppShell from '../components/AppShell';
+import MobilisationCreateModal from '../components/MobilisationCreateModal';
 import PageHeader from '../components/PageHeader';
 import { usePaged } from '../hooks/usePaged';
 import { api } from '../services/api';
-import MobilisationCreateModal from '../components/MobilisationCreateModal';
 
 interface MobilisationListItem {
   id: number;
@@ -87,7 +87,11 @@ export default function MobilisationsPage() {
               <div className="flex flex-wrap gap-3 text-sm text-[var(--text-secondary)]">
                 <span className="flex items-center gap-1">
                   <CalendarDays className="w-4 h-4" />
-                  {new Date(mob.eventDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {new Date(mob.eventDate).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
                 </span>
                 <span className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
@@ -98,15 +102,18 @@ export default function MobilisationsPage() {
                   {mob.participantsCount} participant{mob.participantsCount > 1 ? 's' : ''}
                 </span>
               </div>
-              {mob.isParticipant && (
-                <p className="mt-2 text-sm text-[var(--accent)] font-semibold">Tu participes</p>
-              )}
+              {mob.isParticipant && <p className="mt-2 text-sm text-[var(--accent)] font-semibold">Tu participes</p>}
             </div>
           </Link>
         ))}
 
         {hasMore && (
-          <button type="button" onClick={loadMore} disabled={loadingMore} className="w-full py-3 text-center text-[var(--accent)] font-semibold hover:bg-[var(--bg-tertiary)] rounded-xl transition-colors">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full py-3 text-center text-[var(--accent)] font-semibold hover:bg-[var(--bg-tertiary)] rounded-xl transition-colors"
+          >
             {loadingMore ? 'Chargement…' : 'Voir plus'}
           </button>
         )}

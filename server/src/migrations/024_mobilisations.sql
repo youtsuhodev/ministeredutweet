@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS mobilisations (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_mob_date (event_date),
   INDEX idx_mob_status (status),
-  INDEX idx_mob_slug (slug)
+  INDEX idx_mob_slug (slug),
+  INDEX idx_mob_status_date (status, event_date DESC)
 );
 
 CREATE TABLE IF NOT EXISTS mobilisation_participants (

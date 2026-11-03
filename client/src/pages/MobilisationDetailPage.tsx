@@ -1,6 +1,6 @@
 import { CalendarDays, Check, ImagePlus, MapPin, Megaphone, Send, Trash2, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import PageHeader from '../components/PageHeader';
 import { api, errorMessage } from '../services/api';
@@ -81,8 +81,11 @@ export default function MobilisationDetailPage() {
     try {
       const data = await api.get<CommentDto[]>(`/mobilisations/${mob.id}/comments`);
       setComments(data);
-    } catch { /* ignore */ }
-    finally { setCommentsLoading(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setCommentsLoading(false);
+    }
   }, [mob]);
 
   const loadMedia = useCallback(async () => {
@@ -91,8 +94,11 @@ export default function MobilisationDetailPage() {
     try {
       const data = await api.get<MediaDto[]>(`/mobilisations/${mob.id}/media`);
       setMedia(data);
-    } catch { /* ignore */ }
-    finally { setMediaLoading(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setMediaLoading(false);
+    }
   }, [mob]);
 
   useEffect(() => {
@@ -111,8 +117,18 @@ export default function MobilisationDetailPage() {
     const action = mob.isParticipant ? 'leave' : 'join';
     try {
       await api.post(`/mobilisations/${mob.id}/${action}`);
-      setMob((prev) => prev ? { ...prev, isParticipant: !prev.isParticipant, participantsCount: prev.participantsCount + (mob.isParticipant ? -1 : 1) } : prev);
-    } catch { /* ignore */ }
+      setMob((prev) =>
+        prev
+          ? {
+              ...prev,
+              isParticipant: !prev.isParticipant,
+              participantsCount: prev.participantsCount + (mob.isParticipant ? -1 : 1),
+            }
+          : prev,
+      );
+    } catch {
+      /* ignore */
+    }
   };
 
   const submitComment = async (e: React.FormEvent) => {
@@ -122,7 +138,9 @@ export default function MobilisationDetailPage() {
       const comment = await api.post<CommentDto>(`/mobilisations/${mob.id}/comments`, { body: commentText.trim() });
       setComments((prev) => [comment, ...prev]);
       setCommentText('');
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const deleteComment = async (id: number) => {
@@ -130,7 +148,9 @@ export default function MobilisationDetailPage() {
     try {
       await api.del(`/mobilisations/${mob.id}/comments/${id}`);
       setComments((prev) => prev.filter((c) => c.id !== id));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const uploadMedia = async (file: File) => {
@@ -139,9 +159,14 @@ export default function MobilisationDetailPage() {
     formData.append('file', file);
     try {
       const { url, type } = await api.upload<{ url: string; type: string }>('/upload?kind=post', formData);
-      const media = await api.post<MediaDto>(`/mobilisations/${mob.id}/media`, { url, type: type === 'video' ? 'video' : 'image' });
+      const media = await api.post<MediaDto>(`/mobilisations/${mob.id}/media`, {
+        url,
+        type: type === 'video' ? 'video' : 'image',
+      });
       setMedia((prev) => [media, ...prev]);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   if (loading) {
@@ -176,7 +201,12 @@ export default function MobilisationDetailPage() {
         <div className="flex flex-wrap gap-3 text-sm text-[var(--text-secondary)]">
           <span className="flex items-center gap-1">
             <CalendarDays className="w-4 h-4" />
-            {new Date(mob.eventDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date(mob.eventDate).toLocaleDateString('fr-FR', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
           </span>
           <span className="flex items-center gap-1">
             <MapPin className="w-4 h-4" />
@@ -219,7 +249,9 @@ export default function MobilisationDetailPage() {
               type="button"
               onClick={() => setTab(t)}
               className={`px-4 py-2 text-sm font-semibold capitalize border-b-2 transition-colors ${
-                tab === t ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)]'
+                tab === t
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-transparent text-[var(--text-secondary)]'
               }`}
             >
               {t === 'discussion' ? 'Discussion' : 'Médias'}
@@ -238,7 +270,11 @@ export default function MobilisationDetailPage() {
                 maxLength={2000}
                 className="flex-1 px-4 py-2.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm outline-none border border-[var(--border-color)] focus:border-[var(--accent)]"
               />
-              <button type="submit" disabled={!commentText.trim()} className="p-2.5 rounded-full bg-[var(--accent)] text-white disabled:opacity-40">
+              <button
+                type="submit"
+                disabled={!commentText.trim()}
+                className="p-2.5 rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
+              >
                 <Send className="w-4 h-4" />
               </button>
             </form>
@@ -249,12 +285,20 @@ export default function MobilisationDetailPage() {
               <div key={c.id} className="flex gap-3 py-2 border-b border-[var(--border-color)]">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="font-semibold text-[var(--text-primary)]">{c.sender.displayName || c.sender.pseudo}</span>
-                    <span className="text-[var(--text-secondary)] text-xs">{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span>
+                    <span className="font-semibold text-[var(--text-primary)]">
+                      {c.sender.displayName || c.sender.pseudo}
+                    </span>
+                    <span className="text-[var(--text-secondary)] text-xs">
+                      {new Date(c.createdAt).toLocaleDateString('fr-FR')}
+                    </span>
                   </div>
                   <p className="text-sm text-[var(--text-primary)] mt-1 whitespace-pre-wrap">{c.body}</p>
                 </div>
-                <button type="button" onClick={() => deleteComment(c.id)} className="p-1 text-[var(--text-secondary)] hover:text-[var(--danger)] self-start">
+                <button
+                  type="button"
+                  onClick={() => deleteComment(c.id)}
+                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--danger)] self-start"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -278,7 +322,11 @@ export default function MobilisationDetailPage() {
                 type="file"
                 accept="image/*,video/*"
                 className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(f); e.target.value = ''; }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadMedia(f);
+                  e.target.value = '';
+                }}
               />
             </div>
 
@@ -297,7 +345,9 @@ export default function MobilisationDetailPage() {
                   {m.type === 'image' ? (
                     <img src={m.url} alt="" className="w-full h-36 object-cover" />
                   ) : (
-                    <video src={m.url} className="w-full h-36 object-cover" controls />
+                    <video src={m.url} className="w-full h-36 object-cover" controls>
+                      <track kind="captions" label="Sous-titres" />
+                    </video>
                   )}
                   <div className="px-2 py-1.5 text-xs text-[var(--text-secondary)]">
                     {m.sender.displayName || m.sender.pseudo}

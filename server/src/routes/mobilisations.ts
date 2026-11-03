@@ -29,7 +29,12 @@ function fail(res: import('express').Response, err: unknown) {
   throw err;
 }
 
-const createLimiter = rateLimit({ windowMs: 60_000, max: 5, message: 'Trop de mobilisations créées, ralentis', key: byUser });
+const createLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  message: 'Trop de mobilisations créées, ralentis',
+  key: byUser,
+});
 const commentLimiter = rateLimit({ windowMs: 60_000, max: 30, message: 'Tu commentes trop vite', key: byUser });
 const mediaLimiter = rateLimit({ windowMs: 60_000, max: 20, message: 'Trop de médias, ralentis', key: byUser });
 
@@ -85,7 +90,15 @@ router.patch('/:id', async (req, res) => {
     const id = parseId(req.params.id);
     if (!id) return res.status(404).json({ error: 'Mobilisation introuvable' });
     const { title, description, practicalInfo, eventDate, location, image, status } = req.body ?? {};
-    await updateMobilisation(id, currentUser(req).uid, { title, description, practicalInfo, eventDate, location, image, status });
+    await updateMobilisation(id, currentUser(req).uid, {
+      title,
+      description,
+      practicalInfo,
+      eventDate,
+      location,
+      image,
+      status,
+    });
     res.json({ ok: true });
   } catch (err) {
     fail(res, err);
