@@ -21,6 +21,8 @@ export const RESERVED_PSEUDOS = new Set([
   'login',
   'logout',
   'register',
+  'mobilisations',
+  'mobilisation',
   'reset-password',
   'verify-email',
   'forgot-password',

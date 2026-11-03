@@ -3,6 +3,7 @@ import {
   Feather,
   Home,
   Mail,
+  Megaphone,
   MessagesSquare,
   MoreHorizontal,
   Search,
@@ -38,6 +39,7 @@ export default function MobileNav() {
   const moreItems = [
     { to: '/bookmarks', icon: Bookmark, label: 'Enregistrés', badge: 0 },
     { to: '/chat', icon: MessagesSquare, label: 'Salon', badge: 0 },
+    { to: '/mobilisations', icon: Megaphone, label: 'Mobilisations', badge: 0 },
     { to: '/settings', icon: Settings, label: 'Réglages', badge: 0 },
     ...(user.role === 'moderator' || user.role === 'admin'
       ? [{ to: '/admin', icon: ShieldCheck, label: 'Modération', badge: 0 }]

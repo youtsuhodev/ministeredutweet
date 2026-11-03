@@ -23,6 +23,8 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const PublicChatPage = lazy(() => import('./pages/PublicChatPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
+const MobilisationsPage = lazy(() => import('./pages/MobilisationsPage'));
+const MobilisationDetailPage = lazy(() => import('./pages/MobilisationDetailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/AuthFlowPages').then((m) => ({ default: m.ForgotPasswordPage })));
 
 function Loading() {
@@ -87,6 +89,8 @@ function AppRoutes() {
       <Route path="/messages/:id" element={protectedPage(<ChatPage />)} />
       <Route path="/settings" element={protectedPage(<SettingsPage />)} />
       <Route path="/admin" element={protectedPage(<AdminPage />)} />
+      <Route path="/mobilisations" element={protectedPage(<MobilisationsPage />)} />
+      <Route path="/mobilisation/:slug" element={protectedPage(<MobilisationDetailPage />)} />
       <Route path="/:pseudo/followers" element={protectedPage(<FollowListPage kind="followers" />)} />
       <Route path="/:pseudo/following" element={protectedPage(<FollowListPage kind="following" />)} />
       <Route path="/:pseudo" element={protectedPage(<ProfilePage />)} />

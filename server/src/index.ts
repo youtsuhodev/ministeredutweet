@@ -23,6 +23,7 @@ import profilesRoutes from './routes/profiles.js';
 import pushRoutes from './routes/push.js';
 import { seoRouter, spaFallback } from './routes/seo.js';
 import socialRoutes from './routes/social.js';
+import mobilisationsRoutes from './routes/mobilisations.js';
 import trendsRoutes from './routes/trends.js';
 import uploadRoutes from './routes/upload.js';
 import { purgeOldChatMessages } from './services/chat.js';
@@ -126,6 +127,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/trends', trendsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/mobilisations', mobilisationsRoutes);
 
 /* Uploads : même dossier que celui où écrit /api/upload. Un fichier d'upload ne doit jamais
    être interprété comme une page (nosniff + CSP vide), même si un type MIME était usurpé.
